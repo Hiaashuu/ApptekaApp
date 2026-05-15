@@ -1,0 +1,44 @@
+package com.hiaashuu.appteka.util
+
+import android.content.Context
+import android.content.pm.PackageManager
+import com.tomclaw.imageloader.core.Loader
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URI
+
+class AppIconLoader(
+    private val context: Context,
+    private val packageManager: PackageManager
+) : Loader {
+
+    override val schemes: List<String>
+        get() = listOf("app")
+
+    override fun load(uriString: String, file: File): Boolean {
+        try {
+            val packageName = parseUri(uriString)
+            val packageInfo = packageManager.getPackageInfoCompat(packageName, 0)
+            val data = PackageHelper.getPackageIconPng(
+                packageInfo.applicationInfo, packageManager, context
+            )
+            FileOutputStream(file).use { output ->
+                output.write(data)
+                output.flush()
+            }
+            return true
+        } catch (ignored: Throwable) {
+        }
+        return false
+    }
+
+    private fun parseUri(s: String?): String {
+        val uri = URI.create(s)
+        return uri.authority
+    }
+
+}
+
+fun createAppIconURI(packageName: String): String {
+    return "app://$packageName"
+}
