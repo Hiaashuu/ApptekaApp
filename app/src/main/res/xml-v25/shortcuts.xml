@@ -1,0 +1,54 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="store"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_store"
+        android:shortcutShortLabel="@string/nav_store"
+        android:shortcutLongLabel="@string/nav_store"
+        android:shortcutDisabledMessage="@string/nav_store">
+        <intent
+            android:action="com.hiaashuu.appteka.cloud"
+            android:targetPackage="com.hiaashuu.appteka"
+            android:targetClass="com.hiaashuu.appteka.screen.home.HomeActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="discuss"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_discuss"
+        android:shortcutShortLabel="@string/nav_discuss"
+        android:shortcutLongLabel="@string/nav_discuss"
+        android:shortcutDisabledMessage="@string/nav_discuss">
+        <intent
+            android:action="com.hiaashuu.appteka.discuss"
+            android:targetPackage="com.hiaashuu.appteka"
+            android:targetClass="com.hiaashuu.appteka.screen.home.HomeActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="apps"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_apps"
+        android:shortcutShortLabel="@string/nav_installed"
+        android:shortcutLongLabel="@string/nav_installed"
+        android:shortcutDisabledMessage="@string/nav_installed">
+        <intent
+            android:action="com.hiaashuu.appteka.apps"
+            android:targetPackage="com.hiaashuu.appteka"
+            android:targetClass="com.hiaashuu.appteka.screen.home.HomeActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="install"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_install"
+        android:shortcutShortLabel="@string/nav_downloaded"
+        android:shortcutLongLabel="@string/nav_downloaded"
+        android:shortcutDisabledMessage="@string/nav_downloaded">
+        <intent
+            android:action="com.hiaashuu.appteka.install"
+            android:targetPackage="com.hiaashuu.appteka"
+            android:targetClass="com.hiaashuu.appteka.screen.home.HomeActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
