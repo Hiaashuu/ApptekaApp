@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="@string/pref_category_appearance_title"
+        app:useMaterialThemeColors="true">
+
+        <Preference
+            android:key="@string/pref_theme"
+            android:title="@string/pref_title_theme"
+            android:summary="@string/pref_summary_theme"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_day_night" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="@string/pref_dynamic_colors"
+            android:title="@string/pref_title_dynamic_colors"
+            android:summary="@string/pref_summary_dynamic_colors"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_dynamic_color" />
+
+        <Preference
+            android:key="@string/pref_seed_color"
+            android:title="@string/pref_title_seed_color"
+            android:summary="@string/pref_summary_seed_color"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_color" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="@string/pref_category_app_behavior_key"
+        android:title="@string/pref_category_app_behavior_title"
+        app:useMaterialThemeColors="true">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/pref_show_system_default"
+            android:key="@string/pref_show_system"
+            android:summary="@string/pref_summary_show_system"
+            android:title="@string/pref_title_show_system"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_show_system" />
+            
+        <Preference
+            android:key="@string/pref_sort_order"
+            android:summary="@string/pref_summary_sort_order"
+            android:title="@string/pref_title_sort_order"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_sort_order" />
+            
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/pref_category_network_title"
+        app:useMaterialThemeColors="true">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="@string/pref_proxy_enabled"
+            android:title="@string/pref_title_proxy_enabled"
+            android:summary="@string/pref_summary_proxy_enabled"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_proxy" />
+
+        <Preference
+            android:key="@string/pref_proxy_settings"
+            android:title="@string/pref_title_proxy_settings"
+            android:summary="@string/pref_summary_proxy_settings"
+            android:dependency="@string/pref_proxy_enabled"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_proxy_settings" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/pref_category_general_title"
+        app:useMaterialThemeColors="true">
+        
+        <Preference
+            android:key="@string/pref_clear_cache"
+            android:summary="@string/pref_summary_clear_cache"
+            android:title="@string/pref_title_clear_cache"
+            app:useMaterialThemeColors="true"
+            android:icon="@drawable/ic_clear_cache" />
+            
+    </PreferenceCategory>
+</androidx.preference.PreferenceScreen>
