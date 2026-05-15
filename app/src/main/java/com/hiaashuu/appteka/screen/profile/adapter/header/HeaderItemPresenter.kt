@@ -1,0 +1,61 @@
+package com.hiaashuu.appteka.screen.profile.adapter.header
+
+import com.hiaashuu.appteka.util.adapter.ItemPresenter
+import com.hiaashuu.appteka.categories.DEFAULT_LOCALE
+import com.hiaashuu.appteka.screen.profile.adapter.ItemListener
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+class HeaderItemPresenter(
+    private val listener: ItemListener,
+    private val resourceProvider: HeaderResourceProvider,
+    private val locale: Locale,
+) : ItemPresenter<HeaderItemView, HeaderItem> {
+
+    override fun bindView(view: HeaderItemView, item: HeaderItem, position: Int) {
+        view.setUserIcon(item.userIcon)
+        view.setUserBadge(item.primaryBadge)
+        view.setBadges(item.badges)
+        view.setOnBadgeClickListener { badge -> listener.onBadgeClick(badge) }
+
+        val name = item.userName.takeIf { !it.isNullOrBlank() }
+            ?: item.userIcon.label?.get(locale.language)
+            ?: item.userIcon.label?.get(DEFAULT_LOCALE).orEmpty()
+        view.setUserName(name)
+        view.setUserEmail(item.userEmail)
+        view.setUserBio(item.userBio)
+
+        val onlineGap = TimeUnit.MINUTES.toMillis(15)
+        val currentTime = System.currentTimeMillis()
+        val isOnline = currentTime - item.lastSeen < onlineGap
+        val lastSeenString = resourceProvider.formatLastSeen(item.lastSeen, onlineGap)
+        val joinedString = resourceProvider.formatJoinedTime(item.joinTime)
+        val roleString = resourceProvider.getRoleName(item.role)
+        val description = "$roleString, $joinedString, $lastSeenString"
+
+        view.setUserDescription(description, if (isOnline) lastSeenString else null)
+        if (item.isSelf) {
+            view.showUserNameEditIcon()
+            view.setOnNameClickListener { listener.onEditName(name, item.nameRegex) }
+            view.setOnAvatarClickListener { listener.onEditAvatar() }
+            if (!item.userEmail.isNullOrBlank()) {
+                view.showUserEmailEditIcon()
+                view.setOnEmailClickListener { listener.onEditEmail() }
+            }
+            view.hideSubscribeButton()
+            view.hideUnsubscribeButton()
+        } else {
+            view.setOnAvatarClickListener(null)
+            view.setOnSubscribeClickListener { listener.onSubscribeClick() }
+            view.setOnUnsubscribeClickListener { listener.onUnsubscribeClick() }
+            if (item.isSubscribed) {
+                view.hideSubscribeButton()
+                view.showUnsubscribeButton()
+            } else {
+                view.showSubscribeButton()
+                view.hideUnsubscribeButton()
+            }
+        }
+    }
+
+}
