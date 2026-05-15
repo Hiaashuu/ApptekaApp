@@ -1,0 +1,30 @@
+package com.hiaashuu.appteka.user.api
+
+import android.os.Parcelable
+import com.google.gson.annotations.SerializedName
+import com.hiaashuu.appteka.dto.UserIcon
+import com.hiaashuu.appteka.util.GsonModel
+import kotlinx.parcelize.Parcelize
+
+@GsonModel
+@Parcelize
+data class UserProfile(
+    @SerializedName("user_id")
+    val userId: Int,
+    @SerializedName("user_icon")
+    val userIcon: UserIcon,
+    @SerializedName("join_time")
+    val joinTime: Long,
+    @SerializedName("last_seen")
+    val lastSeen: Long,
+    @SerializedName("role")
+    val role: Int,
+    @SerializedName("name")
+    val name: String?,
+    @SerializedName("is_registered")
+    val isRegistered: Boolean,
+    @SerializedName("url")
+    val url: String?,
+    @SerializedName("bio")
+    val bio: String? = null,
+) : Parcelable
