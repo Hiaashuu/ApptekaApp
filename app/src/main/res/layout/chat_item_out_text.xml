@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/activatedBackgroundIndicator"
+    android:descendantFocusability="blocksDescendants"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:paddingLeft="5dp"
+    android:paddingTop="5dp"
+    android:paddingRight="5dp">
+
+    <include layout="@layout/chat_item_date" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:baselineAligned="false"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:orientation="vertical"
+            android:paddingStart="5dp"
+            android:paddingEnd="8dp">
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="80dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/out_bubble_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="6dp"
+                        android:duplicateParentState="true"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="6dp"
+                        android:paddingBottom="4dp">
+
+                        <com.hiaashuu.appteka.screen.chat.view.MessageAttachmentsView
+                            android:layout_height="wrap_content"
+                            android:layout_width="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:visibility="gone"
+                            android:id="@+id/out_attachments" />
+
+                        <TextView
+                            android:id="@+id/out_text"
+                            style="@style/Chat.Message.Outgoing"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:breakStrategy="balanced"
+                            android:hyphenationFrequency="full"
+                            android:includeFontPadding="false"
+                            android:paddingStart="6dp"
+                            android:paddingTop="4dp"
+                            android:paddingEnd="6dp"
+                            android:paddingBottom="0dp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="2dp"
+                            android:paddingBottom="0dp"
+                            android:paddingTop="2dp">
+
+                            <TextView
+                                android:id="@+id/out_time"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textSize="12sp"
+                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:paddingEnd="4dp" />
+
+                            <ImageView
+                                android:id="@+id/message_delivery"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:contentDescription="@string/delivery"
+                                android:src="@drawable/check_circle"
+                                app:tint="?attr/colorOnPrimaryContainer" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </FrameLayout>
+        </LinearLayout>
+
+        <include
+            android:id="@+id/member_icon"
+            layout="@layout/user_icon_s"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:scaleType="center" />
+    </LinearLayout>
+</LinearLayout>
