@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        
+        <include
+            android:id="@+id/user_icon"
+            layout="@layout/user_icon_xl"
+            android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="0dp">
+
+            <TextView
+                android:id="@+id/user_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginBottom="2dp"
+                android:background="@drawable/rounded_transparent_ripple"
+                android:drawablePadding="6dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="2"
+                android:padding="2dp"
+                android:singleLine="false"
+                android:textColor="?text_primary_color"
+                android:textSize="22sp"
+                app:drawableTint="?android:textColorPrimary"
+                tools:text="Zibuhoker" />
+
+            <TextView
+                android:id="@+id/user_email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/rounded_transparent_ripple"
+                android:drawablePadding="6dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:padding="2dp"
+                android:textColor="?text_secondary_color"
+                android:textSize="14sp"
+                android:visibility="gone"
+                app:drawableTint="?text_secondary_color"
+                tools:text="user@example.com"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/user_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:fontFamily="sans-serif"
+                android:includeFontPadding="false"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:textColor="?text_secondary_color"
+                android:textSize="15sp"
+                tools:text="Moderator, joined 2 years ago,\nlast seen yesterday" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="20dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/subscribe_button"
+                    style="@style/MaterialButtonSecondaryOutline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawableLeft="@drawable/ic_account_plus"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:text="@string/subscribe"
+                   
+                    app:drawableTint="?attr/colorPrimary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/unsubscribe_button"
+                    style="@style/MaterialButtonSecondaryOutline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:drawableLeft="@drawable/ic_account_minus"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:text="@string/unsubscribe"
+                   
+                    app:drawableTint="?attr/colorPrimary"
+                    tools:visibility="gone" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    
+    <LinearLayout
+        android:id="@+id/user_bio_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/profile_bio_container"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_account_circle_outline"
+                app:tint="?attr/text_secondary_color" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/profile_bio_section_label"
+                android:textColor="?attr/text_secondary_color"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/user_bio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="sans-serif"
+            android:lineSpacingMultiplier="1.25"
+            android:textColor="?attr/text_primary_color"
+            android:textSize="16sp"
+            tools:text="Senior software engineer in Berlin. Open-source enthusiast." />
+
+    </LinearLayout>
+
+    
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/user_badges_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:visibility="gone"
+        app:chipSpacingHorizontal="6dp"
+        app:chipSpacingVertical="6dp"
+        app:singleLine="false"
+        tools:visibility="visible" />
+
+</LinearLayout>
