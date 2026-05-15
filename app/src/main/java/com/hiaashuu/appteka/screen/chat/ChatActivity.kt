@@ -1,0 +1,168 @@
+package com.hiaashuu.appteka.screen.chat
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.dto.TopicEntity
+import com.hiaashuu.appteka.screen.auth.request_code.createRequestCodeActivityIntent
+import com.hiaashuu.appteka.screen.chat.di.ChatModule
+import com.hiaashuu.appteka.screen.details.createDetailsActivityIntent
+import com.hiaashuu.appteka.screen.gallery.GalleryItem
+import com.hiaashuu.appteka.screen.gallery.createGalleryActivityIntent
+import com.hiaashuu.appteka.screen.profile.createProfileActivityIntent
+import com.hiaashuu.appteka.util.Analytics
+import com.hiaashuu.appteka.util.ZipParcelable
+import com.hiaashuu.appteka.util.getParcelableCompat
+import javax.inject.Inject
+
+class ChatActivity : AppCompatActivity(), ChatPresenter.ChatRouter {
+
+    @Inject
+    lateinit var presenter: ChatPresenter
+
+    @Inject
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    @Inject
+    lateinit var preferences: ChatPreferencesProvider
+
+    @Inject
+    lateinit var analytics: Analytics
+
+    private val pickSingleImageLauncher =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) presenter.onAttachmentsPicked(listOf(uri))
+        }
+
+    private val pickMultipleImagesLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.PickMultipleVisualMedia(
+                DEFAULT_MAX_TILES
+            )
+        ) { uris ->
+            if (uris.isNotEmpty()) presenter.onAttachmentsPicked(uris)
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val topicEntity = intent.getParcelableExtra<TopicEntity>(EXTRA_TOPIC_ENTITY)
+        val viewTitle = intent.getStringExtra(EXTRA_TITLE).takeIf { !it.isNullOrEmpty() }
+            ?: getString(R.string.chat_activity)
+        val topicId = intent.getIntExtra(EXTRA_TOPIC_ID, 0).takeIf { it != 0 }
+            ?: topicEntity?.topicId ?: throw IllegalArgumentException("Topic ID must be provided")
+
+        val presenterState = savedInstanceState
+            ?.getParcelableCompat(KEY_PRESENTER_STATE, ZipParcelable::class.java)
+            ?.restore<Bundle>()
+        appComponent
+            .chatComponent(ChatModule(this, topicEntity, topicId, presenterState))
+            .inject(activity = this)
+
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.chat_activity)
+
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val view =
+            ChatViewImpl(window.decorView, preferences, adapter, adapterPresenter)
+                .apply { setTitle(viewTitle) }
+
+        presenter.attachView(view)
+
+        if (savedInstanceState == null) {
+            analytics.trackEvent("open-chat-screen")
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        presenter.attachRouter(this)
+    }
+
+    override fun onStop() {
+        presenter.detachRouter()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        presenter.detachView()
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(KEY_PRESENTER_STATE, ZipParcelable(presenter.saveState()))
+    }
+
+    override fun openProfileScreen(userId: Int) {
+        val intent = createProfileActivityIntent(this, userId)
+        startActivity(intent)
+    }
+
+    override fun openAppScreen(packageName: String, title: String) {
+        val intent = createDetailsActivityIntent(
+            context = this,
+            packageName = packageName,
+            label = title,
+            moderation = false,
+            finishOnly = true
+        )
+        startActivity(intent)
+    }
+
+    override fun openLoginScreen() {
+        val intent = createRequestCodeActivityIntent(context = this)
+        startActivity(intent)
+    }
+
+    override fun openGallery(items: List<GalleryItem>, startIndex: Int) {
+        if (items.isEmpty()) return
+        val intent = createGalleryActivityIntent(this, items, startIndex)
+        startActivity(intent)
+    }
+
+    override fun openImagePicker(remaining: Int) {
+        val request = PickVisualMediaRequest.Builder()
+            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            .build()
+        if (remaining <= 1) {
+            pickSingleImageLauncher.launch(request)
+        } else {
+            pickMultipleImagesLauncher.launch(request)
+        }
+    }
+
+    override fun leaveScreen() {
+        finish()
+    }
+
+}
+
+fun createChatActivityIntent(
+    context: Context,
+    topicId: Int,
+    title: String?,
+): Intent = Intent(context, ChatActivity::class.java)
+    .putExtra(EXTRA_TOPIC_ID, topicId)
+    .putExtra(EXTRA_TITLE, title)
+
+fun createChatActivityIntent(
+    context: Context,
+    topicEntity: TopicEntity,
+): Intent = Intent(context, ChatActivity::class.java)
+    .putExtra(EXTRA_TOPIC_ENTITY, topicEntity)
+
+private const val EXTRA_TOPIC_ID = "topic_id"
+private const val EXTRA_TITLE = "title"
+private const val EXTRA_TOPIC_ENTITY = "topic_entity"
+private const val KEY_PRESENTER_STATE = "presenter_state"
+private const val DEFAULT_MAX_TILES = 5
