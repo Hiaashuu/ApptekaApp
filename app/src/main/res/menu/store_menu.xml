@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_category"
+        android:icon="@drawable/ic_category"
+        android:title="@string/select_category"
+        app:iconTint="?android:textColorPrimary"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_search"
+        android:icon="@drawable/ic_search"
+        android:title="@string/menu_search"
+        app:iconTint="?android:textColorPrimary"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_settings"
+        android:title="@string/nav_settings" />
+    <item
+        android:id="@+id/menu_installed"
+        android:enabled="true"
+        android:icon="@drawable/ic_apps"
+        android:title="@string/nav_installed" />
+    <item
+        android:id="@+id/menu_distro"
+        android:enabled="true"
+        android:icon="@drawable/ic_install"
+        android:title="@string/nav_downloaded" />
+    <item
+        android:id="@+id/menu_about"
+        android:title="@string/nav_info" />
+</menu>
