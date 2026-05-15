@@ -1,0 +1,95 @@
+package com.hiaashuu.appteka.screen.moderation
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.appcompat.app.AppCompatActivity
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.screen.details.createDetailsActivityIntent
+import com.hiaashuu.appteka.screen.moderation.di.ModerationModule
+import com.hiaashuu.appteka.util.ZipParcelable
+import com.hiaashuu.appteka.util.getParcelableCompat
+import javax.inject.Inject
+
+class ModerationActivity : AppCompatActivity(), ModerationPresenter.ModerationRouter {
+
+    @Inject
+    lateinit var presenter: ModerationPresenter
+
+    @Inject
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    private val invalidateDetailsResultLauncher =
+        registerForActivityResult(StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                presenter.invalidateApps()
+            }
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val presenterState = savedInstanceState
+            ?.getParcelableCompat(KEY_PRESENTER_STATE, ZipParcelable::class.java)
+            ?.restore<Bundle>()
+        appComponent
+            .moderationComponent(ModerationModule(this, presenterState))
+            .inject(activity = this)
+
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.moderation_activity)
+
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val view = ModerationViewImpl(window.decorView, adapter)
+
+        presenter.attachView(view)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        presenter.attachRouter(this)
+    }
+
+    override fun onStop() {
+        presenter.detachRouter()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        presenter.detachView()
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(KEY_PRESENTER_STATE, ZipParcelable(presenter.saveState()))
+    }
+
+    override fun openAppModerationScreen(appId: String, title: String) {
+        val intent = createDetailsActivityIntent(
+            context = this,
+            appId = appId,
+            label = title,
+            moderation = true,
+            finishOnly = true
+        )
+        invalidateDetailsResultLauncher.launch(intent)
+    }
+
+    override fun leaveScreen() {
+        finish()
+    }
+
+}
+
+fun createModerationActivityIntent(
+    context: Context,
+): Intent = Intent(context, ModerationActivity::class.java)
+
+private const val KEY_PRESENTER_STATE = "presenter_state"
