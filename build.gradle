@@ -1,0 +1,15 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.10"
+    }
+}
+
+plugins {
+    id 'com.android.application' version '9.2.0' apply false
+    id 'com.android.library' version '9.2.0' apply false
+    id 'com.google.devtools.ksp' version '2.3.6' apply false
+}
