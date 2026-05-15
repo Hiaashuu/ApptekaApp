@@ -1,0 +1,151 @@
+package com.hiaashuu.appteka.screen.chat
+
+import android.net.Uri
+import com.hiaashuu.appteka.core.StoreApi
+import com.hiaashuu.appteka.dto.MessageEntity
+import com.hiaashuu.appteka.dto.TopicEntity
+import com.hiaashuu.appteka.screen.chat.api.MsgTranslateResponse
+import com.hiaashuu.appteka.screen.chat.api.ReadTopicResponse
+import com.hiaashuu.appteka.screen.chat.api.ReportMessageResponse
+import com.hiaashuu.appteka.screen.chat.api.SendMessageResponse
+import com.hiaashuu.appteka.util.ImageCompressor
+import com.hiaashuu.appteka.screen.topics.api.PinTopicResponse
+import com.hiaashuu.appteka.user.api.UserBrief
+import com.hiaashuu.appteka.util.SchedulersFactory
+import io.reactivex.rxjava3.core.Observable
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.Locale
+import java.util.UUID
+
+data class UserBriefWrapper(
+    val userBrief: UserBrief?
+)
+
+interface ChatInteractor {
+
+    fun getUserBrief(): Observable<UserBriefWrapper>
+
+    fun getTopic(topicId: Int): Observable<TopicEntity>
+
+    fun loadHistory(topicId: Int, fromId: Int, tillId: Int): Observable<List<MessageEntity>>
+
+    fun sendMessage(
+        topicId: Int,
+        text: String?,
+        attachments: List<Uri>
+    ): Observable<SendMessageResponse>
+
+    fun reportMessage(msgId: Int): Observable<ReportMessageResponse>
+
+    fun translateMessage(msgId: Int): Observable<MsgTranslateResponse>
+
+    fun readTopic(topicId: Int, msgId: Int): Observable<ReadTopicResponse>
+
+    fun pinTopic(topicId: Int): Observable<PinTopicResponse>
+
+}
+
+class ChatInteractorImpl(
+    private val api: StoreApi,
+    private val compressor: ImageCompressor,
+    private val locale: Locale,
+    private val schedulers: SchedulersFactory
+) : ChatInteractor {
+
+    override fun getUserBrief(): Observable<UserBriefWrapper> {
+        return api
+            .getUserBrief(userId = null)
+            .map { UserBriefWrapper(it.result) }
+            .onErrorReturn { UserBriefWrapper(userBrief = null) }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun getTopic(topicId: Int): Observable<TopicEntity> {
+        return api.getTopicInfo(topicId = topicId)
+            .map { it.result.topic }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun loadHistory(
+        topicId: Int,
+        fromId: Int,
+        tillId: Int
+    ): Observable<List<MessageEntity>> {
+        return api
+            .getChatHistory(
+                topicId = topicId,
+                from = fromId,
+                till = tillId,
+                locale = locale.language,
+            )
+            .map { it.result.messages.sortedBy { msg -> msg.msgId } }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun sendMessage(
+        topicId: Int,
+        text: String?,
+        attachments: List<Uri>
+    ): Observable<SendMessageResponse> {
+        val cookie = generateCookie()
+        val textPart = text?.takeIf { it.isNotEmpty() }?.toPlainPart()
+        val parts = attachments.takeIf { it.isNotEmpty() }?.map { uri ->
+            MultipartBody.Part.createFormData(
+                "attachment",
+                String.format("att%d.jpg", uri.hashCode()),
+                compressor.asRequestBody(uri)
+            )
+        }
+        return api
+            .sendMessage(
+                topicId = topicId.toString().toPlainPart(),
+                text = textPart,
+                attachments = parts,
+                cookie = cookie.toPlainPart(),
+            )
+            .map { it.result }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun reportMessage(msgId: Int): Observable<ReportMessageResponse> {
+        return api.reportMessage(msgId = msgId)
+            .map { it.result }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun translateMessage(msgId: Int): Observable<MsgTranslateResponse> {
+        return api.translateMessage(msgId = msgId, locale = locale.language)
+            .map { it.result }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun readTopic(topicId: Int, msgId: Int): Observable<ReadTopicResponse> {
+        return api.readTopic(topicId = topicId, msgId = msgId)
+            .map { it.result }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    override fun pinTopic(topicId: Int): Observable<PinTopicResponse> {
+        return api
+            .pinTopic(topicId = topicId)
+            .map { it.result }
+            .toObservable()
+            .subscribeOn(schedulers.io())
+    }
+
+    private fun String.toPlainPart() = toRequestBody(TEXT_PLAIN)
+
+    private fun generateCookie(): String = UUID.randomUUID().toString()
+
+}
+
+private val TEXT_PLAIN = "text/plain".toMediaTypeOrNull()
