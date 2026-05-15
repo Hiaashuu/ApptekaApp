@@ -1,0 +1,51 @@
+package com.hiaashuu.appteka.screen.uploads
+
+import com.hiaashuu.appteka.categories.CategoryConverter
+import com.hiaashuu.appteka.dto.AppEntity
+import com.hiaashuu.appteka.screen.details.adapter.abi.AbiResourceProvider
+import com.hiaashuu.appteka.screen.uploads.AppsResourceProvider
+import com.hiaashuu.appteka.screen.uploads.adapter.app.AppItem
+import com.hiaashuu.appteka.util.NOT_INSTALLED
+import com.hiaashuu.appteka.util.PackageObserver
+import java.util.concurrent.TimeUnit
+
+interface AppConverter {
+
+    fun convert(appEntity: AppEntity): AppItem
+
+}
+
+class AppConverterImpl(
+    private val resourceProvider: AppsResourceProvider,
+    private val categoryConverter: CategoryConverter,
+    private val packageObserver: PackageObserver,
+    private val abiResourceProvider: AbiResourceProvider
+) : AppConverter {
+
+    private var id: Long = 1
+
+    override fun convert(appEntity: AppEntity): AppItem {
+        val installedVersionCode = packageObserver.pickInstalledVersionCode(appEntity.packageName)
+        val isAbiCompatible = appEntity.abi?.let { abiResourceProvider.checkCompatibility(it) } ?: true
+        return AppItem(
+            id = id++,
+            appId = appEntity.appId,
+            icon = appEntity.icon,
+            title = appEntity.title,
+            version = appEntity.verName,
+            size = resourceProvider.formatFileSize(appEntity.size),
+            rating = appEntity.rating,
+            downloads = appEntity.downloads,
+            status = appEntity.status,
+            category = appEntity.category?.let { categoryConverter.convert(it) },
+            exclusive = appEntity.exclusive,
+            openSource = !appEntity.sourceUrl.isNullOrEmpty(),
+            isAbiCompatible = isAbiCompatible,
+            isInstalled = installedVersionCode != NOT_INSTALLED,
+            isUpdatable = installedVersionCode < appEntity.verCode,
+            isNew = (TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - appEntity.time) <
+                    TimeUnit.DAYS.toSeconds(1)
+        )
+    }
+
+}
