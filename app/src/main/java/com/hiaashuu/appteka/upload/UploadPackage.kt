@@ -1,0 +1,21 @@
+package com.hiaashuu.appteka.upload
+
+import android.content.pm.PackageInfo
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class UploadPackage(
+    val uniqueId: String,
+    val sha1: String?,
+    val packageName: String,
+    val size: Long,
+) : Parcelable
+
+@Parcelize
+data class UploadApk(
+    val path: String,
+    val version: String,
+    val size: Long,
+    val packageInfo: PackageInfo,
+) : Parcelable
