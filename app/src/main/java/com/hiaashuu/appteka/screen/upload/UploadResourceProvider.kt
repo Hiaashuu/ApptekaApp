@@ -1,0 +1,74 @@
+package com.hiaashuu.appteka.screen.upload
+
+import android.content.res.Resources
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.categories.DEFAULT_LOCALE
+import com.hiaashuu.appteka.core.permissions.Capability
+import com.hiaashuu.appteka.core.permissions.CapabilityHintResolver
+import com.hiaashuu.appteka.screen.details.api.AppVersion
+import com.hiaashuu.appteka.util.FileHelper
+import java.util.Locale
+
+interface UploadResourceProvider {
+
+    fun shareTitle(): String
+
+    fun formatShareText(
+        url: String,
+        defaultLabel: String?,
+        labels: Map<String, String>?,
+        size: Long
+    ): String
+
+    fun formatVersion(version: AppVersion): String
+
+    fun createTopicError(): String
+
+    fun moderationNotice(bypassModerationCapability: Capability?): String?
+
+}
+
+class UploadResourceProviderImpl(
+    val resources: Resources,
+    val locale: Locale,
+) : UploadResourceProvider {
+
+    override fun shareTitle(): String {
+        return resources.getString(R.string.send_url_to)
+    }
+
+    override fun formatShareText(
+        url: String,
+        defaultLabel: String?,
+        labels: Map<String, String>?,
+        size: Long
+    ): String {
+        val localizedLabel = labels
+            ?.let {
+                labels[locale.language] ?: labels[DEFAULT_LOCALE]
+            }
+            ?: defaultLabel.orEmpty()
+        val sizeString = FileHelper.formatBytes(resources, size)
+        return resources.getString(R.string.uploaded_url, localizedLabel, sizeString, url)
+    }
+
+    override fun formatVersion(version: AppVersion): String {
+        return resources.getString(R.string.app_version_format, version.verName, version.verCode)
+    }
+
+    override fun createTopicError(): String {
+        return resources.getString(R.string.error_app_topic_creation)
+    }
+
+    override fun moderationNotice(bypassModerationCapability: Capability?): String? {
+
+        val capability = bypassModerationCapability ?: return null
+        return if (capability.allowed) {
+            resources.getString(R.string.permission_upload_publishes_immediately)
+        } else {
+
+            CapabilityHintResolver(resources).resolveText(capability)
+        }
+    }
+
+}
