@@ -1,0 +1,87 @@
+package com.hiaashuu.appteka.screen.installed
+
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import com.hiaashuu.appteka.upload.UploadApk
+import com.hiaashuu.appteka.upload.UploadPackage
+import com.hiaashuu.appteka.util.createAppIconURI
+import com.hiaashuu.appteka.util.getInstalledApplicationsCompat
+import com.hiaashuu.appteka.util.getPackageInfoCompat
+import com.hiaashuu.appteka.util.versionCodeCompat
+import java.io.File
+
+interface InstalledInfoProvider {
+
+    fun getInstalledApps(): List<InstalledAppEntity>
+
+    fun getPackagePermissions(packageName: String): List<String>
+
+    fun getPackageUploadInfo(packageName: String): Pair<UploadPackage, UploadApk>
+
+}
+
+class InstalledInfoProviderImpl(
+    private val packageManager: PackageManager,
+) : InstalledInfoProvider {
+
+    override fun getInstalledApps(): List<InstalledAppEntity> {
+        val apps = ArrayList<InstalledAppEntity>()
+        val packages = packageManager.getInstalledApplicationsCompat(PackageManager.GET_META_DATA)
+        for (info in packages) {
+            try {
+                val packageInfo = packageManager.getPackageInfoCompat(info.packageName, 0)
+                val publicSourceDir = packageInfo.applicationInfo?.publicSourceDir ?: continue
+                val file = File(publicSourceDir)
+                if (file.exists()) {
+                    val label =
+                        packageInfo.applicationInfo?.loadLabel(packageManager)?.toString().orEmpty()
+                    val verName = packageInfo.versionName.orEmpty()
+                    val app = InstalledAppEntity(
+                        packageName = info.packageName,
+                        label = label,
+                        icon = createAppIconURI(packageInfo.packageName),
+                        verName = verName,
+                        verCode = packageInfo.versionCodeCompat(),
+                        firstInstallTime = packageInfo.firstInstallTime,
+                        lastUpdateTime = packageInfo.lastUpdateTime,
+                        size = file.length(),
+                        path = file.path,
+                        isUserApp = ((info.flags and ApplicationInfo.FLAG_SYSTEM) != ApplicationInfo.FLAG_SYSTEM &&
+                                (info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)
+                    )
+                    apps.add(app)
+                }
+            } catch (ignored: Throwable) {
+
+            }
+        }
+        return apps
+    }
+
+    override fun getPackagePermissions(packageName: String): List<String> {
+        val packageInfo = packageManager.getPackageInfoCompat(packageName, PackageManager.GET_PERMISSIONS)
+
+        return packageInfo.requestedPermissions?.toList().orEmpty()
+    }
+
+    override fun getPackageUploadInfo(packageName: String): Pair<UploadPackage, UploadApk> {
+        val packageInfo = packageManager.getPackageInfoCompat(packageName, 0)
+        val publicSourceDir = packageInfo.applicationInfo?.publicSourceDir
+            ?: throw IllegalArgumentException("No publicSourceDir")
+        val file = File(publicSourceDir)
+        val verName = packageInfo.versionName.orEmpty()
+        val pkg = UploadPackage(
+            uniqueId = file.path,
+            sha1 = null,
+            packageName = packageName,
+            size = file.length()
+        )
+        val apk = UploadApk(
+            path = file.path,
+            version = verName,
+            size = file.length(),
+            packageInfo = packageInfo
+        )
+        return Pair(pkg, apk)
+    }
+}
