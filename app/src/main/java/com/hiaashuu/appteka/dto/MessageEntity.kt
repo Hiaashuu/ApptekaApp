@@ -1,0 +1,38 @@
+package com.hiaashuu.appteka.dto
+
+import android.os.Parcelable
+import com.google.gson.annotations.SerializedName
+import com.hiaashuu.appteka.core.permissions.Capability
+import com.hiaashuu.appteka.util.GsonModel
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+@GsonModel
+data class MessageEntity(
+    @SerializedName("topic_id")
+    val topicId: Int,
+    @SerializedName("msg_id")
+    val msgId: Int,
+    @SerializedName("prev_msg_id")
+    val prevMsgId: Int,
+    @SerializedName("author")
+    val author: UserMark,
+    @SerializedName("text")
+    val text: String,
+    @SerializedName("translation")
+    val translation: String?,
+    @SerializedName("translation_lang")
+    val translationLang: String?,
+    @SerializedName("time")
+    val time: Long,
+    @SerializedName("cookie")
+    val cookie: String?,
+    @SerializedName("type")
+    val type: Int,
+    @SerializedName("attachments")
+    val attachments: List<AttachmentEntity>?,
+    @SerializedName("incoming")
+    val incoming: Boolean,
+    @SerializedName("capabilities")
+    val capabilities: Map<String, Capability>? = null,
+) : Parcelable
