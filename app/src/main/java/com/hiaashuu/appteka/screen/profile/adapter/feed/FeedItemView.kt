@@ -1,0 +1,87 @@
+package com.hiaashuu.appteka.screen.profile.adapter.feed
+
+import android.view.View
+import android.widget.TextView
+import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
+import com.hiaashuu.appteka.util.adapter.ItemView
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.util.bind
+import com.hiaashuu.appteka.util.getAttributedColor
+import com.hiaashuu.appteka.util.getColor
+
+interface FeedItemView : ItemView {
+
+    fun setFeedCount(count: Int)
+
+    fun setPubsCount(count: Int)
+
+    fun setSubsCount(count: Int)
+
+    fun setOnFeedClickListener(listener: (() -> Unit)?)
+
+    fun setOnSubsClickListener(listener: (() -> Unit)?)
+
+    fun setOnPubsClickListener(listener: (() -> Unit)?)
+
+}
+
+class FeedItemViewHolder(view: View) : BaseItemViewHolder(view), FeedItemView {
+
+    private val context = view.context
+    private val feedBlockView: View = view.findViewById(R.id.feed_block)
+    private val subsBlockView: View = view.findViewById(R.id.subs_block)
+    private val pubsBlockView: View = view.findViewById(R.id.pubs_block)
+    private val feedCountView: TextView = view.findViewById(R.id.feed_count)
+    private val subsCountView: TextView = view.findViewById(R.id.subs_count)
+    private val pubsCountView: TextView = view.findViewById(R.id.pubs_count)
+
+    private var feedClickListener: (() -> Unit)? = null
+    private var subsClickListener: (() -> Unit)? = null
+    private var pubsClickListener: (() -> Unit)? = null
+
+    init {
+        feedBlockView.setOnClickListener { feedClickListener?.invoke() }
+        subsBlockView.setOnClickListener { subsClickListener?.invoke() }
+        pubsBlockView.setOnClickListener { pubsClickListener?.invoke() }
+    }
+
+    override fun setFeedCount(count: Int) {
+        feedCountView.bind(count.toString())
+        feedCountView.setTextColor(getTextColor(count))
+    }
+
+    override fun setSubsCount(count: Int) {
+        subsCountView.bind(count.toString())
+        subsCountView.setTextColor(getTextColor(count))
+    }
+
+    override fun setPubsCount(count: Int) {
+        pubsCountView.bind(count.toString())
+        pubsCountView.setTextColor(getTextColor(count))
+    }
+
+    override fun setOnFeedClickListener(listener: (() -> Unit)?) {
+        this.feedClickListener = listener
+    }
+
+    override fun setOnSubsClickListener(listener: (() -> Unit)?) {
+        this.subsClickListener = listener
+    }
+
+    override fun setOnPubsClickListener(listener: (() -> Unit)?) {
+        this.pubsClickListener = listener
+    }
+
+    override fun onUnbind() {
+        this.feedClickListener = null
+        this.subsClickListener = null
+        this.pubsClickListener = null
+    }
+
+    private fun getTextColor(count: Int) = if (count > 0) {
+        getColor(R.color.primary_dark_color, context)
+    } else {
+        getAttributedColor(context, R.attr.text_primary_color)
+    }
+
+}
