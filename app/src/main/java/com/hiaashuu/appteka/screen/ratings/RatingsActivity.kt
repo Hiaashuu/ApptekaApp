@@ -1,0 +1,97 @@
+package com.hiaashuu.appteka.screen.ratings
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.screen.profile.createProfileActivityIntent
+import com.hiaashuu.appteka.screen.ratings.di.RatingsModule
+import com.hiaashuu.appteka.util.Analytics
+import com.hiaashuu.appteka.util.ZipParcelable
+import com.hiaashuu.appteka.util.getParcelableCompat
+import javax.inject.Inject
+
+class RatingsActivity : AppCompatActivity(), RatingsPresenter.RatingsRouter {
+
+    @Inject
+    lateinit var presenter: RatingsPresenter
+
+    @Inject
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    @Inject
+    lateinit var analytics: Analytics
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val appId = intent.getStringExtra(EXTRA_APP_ID)
+            ?: throw IllegalArgumentException("App ID must be provided")
+        val presenterState = savedInstanceState
+            ?.getParcelableCompat(KEY_PRESENTER_STATE, ZipParcelable::class.java)
+            ?.restore<Bundle>()
+        appComponent
+            .ratingsComponent(RatingsModule(this, appId, presenterState))
+            .inject(activity = this)
+
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.ratings_activity)
+
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val view = RatingsViewImpl(window.decorView, adapter)
+
+        presenter.attachView(view)
+
+        if (savedInstanceState == null) {
+            analytics.trackEvent("open-ratings-screen")
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        presenter.attachRouter(this)
+    }
+
+    override fun onStop() {
+        presenter.detachRouter()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        presenter.detachView()
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(KEY_PRESENTER_STATE, ZipParcelable(presenter.saveState()))
+    }
+
+    override fun openUserProfile(userId: Int) {
+        val intent = createProfileActivityIntent(
+            context = this,
+            userId
+        )
+        startActivity(intent)
+    }
+
+    override fun leaveScreen() {
+        finish()
+    }
+
+}
+
+fun createRatingsActivityIntent(
+    context: Context,
+    appId: String
+): Intent = Intent(context, RatingsActivity::class.java)
+    .putExtra(EXTRA_APP_ID, appId)
+
+private const val EXTRA_APP_ID = "user_id"
+private const val KEY_PRESENTER_STATE = "presenter_state"
