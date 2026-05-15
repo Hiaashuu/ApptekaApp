@@ -1,0 +1,293 @@
+package com.hiaashuu.appteka.download
+
+import android.net.Uri
+import com.jakewharton.rxrelay3.BehaviorRelay
+import com.hiaashuu.appteka.core.ProxyConfigProvider
+import com.hiaashuu.appteka.util.safeClose
+import io.reactivex.rxjava3.core.Observable
+import okhttp3.CookieJar
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.BufferedInputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.InterruptedIOException
+import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.Proxy
+import java.net.URL
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+
+interface DownloadManager {
+
+    fun status(appId: String): Observable<Int>
+
+    fun download(label: String, version: String, appId: String, url: String): String
+
+    fun getInstallUri(label: String, version: String, appId: String): Uri?
+
+    fun exists(label: String, version: String, appId: String): Boolean
+
+    fun cancel(appId: String)
+
+}
+
+class DownloadManagerImpl(
+    private val apkStorage: ApkStorage,
+    private val cookieJar: CookieJar,
+    private val proxyConfigProvider: ProxyConfigProvider,
+) : DownloadManager {
+
+    private val executor = Executors.newSingleThreadExecutor()
+
+    private val relays = HashMap<String, BehaviorRelay<Int>>()
+    private val downloads = HashMap<String, Future<*>>()
+    private val fileNames = HashMap<String, String>()
+
+    override fun status(appId: String): Observable<Int> {
+        val relay = relays[appId] ?: let {
+            val relay = BehaviorRelay.createDefault(IDLE)
+            relay.accept(IDLE)
+            relays[appId] = relay
+            relay
+        }
+        return relay.doFinally {
+            println("[download] Finally status relay")
+            if (relay.hasObservers()) {
+                println("[download] Relay $appId has observers")
+                return@doFinally
+            }
+            val inactiveState = relay.hasValue() &&
+                    (relay.value == IDLE || relay.value == COMPLETED || relay.value == ERROR)
+            println("[download] Relay $appId is inactive: $inactiveState")
+            if (!relay.hasValue() || inactiveState) {
+                relays.remove(appId)
+                println("[download] Relay $appId removed")
+            }
+        }
+    }
+
+    override fun download(label: String, version: String, appId: String, url: String): String {
+        val fileName = fileName(label, version, appId)
+        val relay = relays[appId] ?: BehaviorRelay.create()
+
+        if (apkStorage.exists(fileName)) {
+            relay.accept(COMPLETED)
+            relays[appId] = relay
+            return fileName
+        }
+
+        val existingDownload = downloads[appId]
+        if (existingDownload != null && !existingDownload.isDone) {
+            relays[appId] = relay
+            return fileName
+        }
+
+        relay.accept(AWAIT)
+        fileNames[appId] = fileName
+        downloads[appId] = executor.submit {
+            relay.accept(STARTED)
+            val result = downloadBlocking(
+                url = url,
+                fileName = fileName,
+                progressCallback = { percent ->
+                    relay.accept(percent)
+                },
+                errorCallback = {
+                    relay.accept(ERROR)
+                },
+            )
+            when (result) {
+                DownloadResult.SUCCESS -> {
+                    val committed = apkStorage.commit(fileName)
+                    if (committed) {
+                        relay.accept(COMPLETED)
+                        fileNames.remove(appId)
+                    } else {
+                        relay.accept(ERROR)
+                    }
+                }
+                DownloadResult.INTERRUPTED -> {
+
+                    relay.accept(IDLE)
+                }
+                DownloadResult.ERROR -> {
+
+                }
+            }
+            downloads.remove(appId)
+        }
+        relays[appId] = relay
+        return fileName
+    }
+
+    override fun getInstallUri(label: String, version: String, appId: String): Uri? {
+        val fileName = fileName(label, version, appId)
+        return apkStorage.getInstallUri(fileName)
+    }
+
+    override fun exists(label: String, version: String, appId: String): Boolean {
+        val fileName = fileName(label, version, appId)
+        return apkStorage.exists(fileName)
+    }
+
+    private fun fileName(label: String, version: String, appId: String): String {
+        return escapeFileSymbols("$label-$version-$appId")
+    }
+
+    override fun cancel(appId: String) {
+        downloads.remove(appId)?.cancel(true)
+
+        fileNames.remove(appId)?.let { fileName ->
+            apkStorage.deleteTmp(fileName)
+        }
+        relays[appId]?.accept(IDLE)
+    }
+
+    private fun downloadBlocking(
+        url: String,
+        fileName: String,
+        progressCallback: (Int) -> Unit,
+        errorCallback: (Throwable) -> Unit
+    ): DownloadResult {
+        var connection: HttpURLConnection? = null
+        var input: InputStream? = null
+        var output: OutputStream? = null
+        try {
+            val u = URL(url)
+            val proxy: Proxy? = proxyConfigProvider.getProxyConfig().toProxy()
+            connection = if (proxy != null) {
+                u.openConnection(proxy) as HttpURLConnection
+            } else {
+                u.openConnection() as HttpURLConnection
+            }
+
+            val httpUrl = url.toHttpUrlOrNull()
+                ?: throw IllegalArgumentException("Invalid download URL")
+
+            val cookies = cookieJar.loadForRequest(httpUrl)
+                .map { it.toString() }
+                .takeIf { it.isNotEmpty() }
+                ?.reduce { acc, cookie -> "$acc;$cookie" }
+
+            val downloadedBytes = apkStorage.getTmpSize(fileName)
+
+            with(connection) {
+                setRequestProperty("Cookie", cookies)
+                connectTimeout = TimeUnit.SECONDS.toMillis(30).toInt()
+                requestMethod = GET
+                useCaches = false
+                doInput = true
+                instanceFollowRedirects = false
+
+                if (downloadedBytes > 0) {
+                    setRequestProperty("Range", "bytes=$downloadedBytes-")
+                }
+            }
+            connection.connect()
+            val responseCode = connection.responseCode
+
+            val isResumable = responseCode == SC_PARTIAL_CONTENT
+            val startByte = if (isResumable) downloadedBytes else 0L
+
+            if (responseCode >= SC_BAD_REQUEST) {
+                input = BufferedInputStream(connection.errorStream)
+                errorCallback(IOException("HTTP error: $responseCode"))
+                return DownloadResult.ERROR
+            }
+
+            input = BufferedInputStream(connection.inputStream)
+
+            val contentLength = connection.contentLength.toLong()
+            val total = if (isResumable) {
+
+                connection.getHeaderField("Content-Range")
+                    ?.substringAfter("/")?.toLongOrNull()
+                    ?: (startByte + contentLength)
+            } else {
+                contentLength
+            }
+
+            if (total <= 0) {
+                errorCallback(IOException("ContentLength is not defined"))
+                return DownloadResult.ERROR
+            }
+
+            output = if (isResumable && startByte > 0) {
+                apkStorage.openAppend(fileName)
+            } else {
+                apkStorage.openWrite(fileName)
+            }
+
+            var cache: Int
+            var read = startByte
+            var percent = (100 * read / total).toInt()
+            var progressUpdateTime = 0L
+            val buffer = ByteArray(BUFFER_SIZE)
+
+            if (startByte > 0) {
+                progressCallback(percent)
+            }
+
+            while (input.read(buffer).also { cache = it } != -1) {
+                output.write(buffer, 0, cache)
+                output.flush()
+                read += cache.toLong()
+                val p = (100 * read / total).toInt()
+                if (p > percent) {
+                    if (System.currentTimeMillis() > progressUpdateTime + 300) {
+                        progressCallback(percent)
+                        progressUpdateTime = System.currentTimeMillis()
+                    }
+                    percent = p
+                }
+            }
+            progressCallback(100)
+            return DownloadResult.SUCCESS
+        } catch (ex: InterruptedIOException) {
+            println("[download] IO interruption - partial file saved for resume\n$ex")
+            return DownloadResult.INTERRUPTED
+        } catch (ex: InterruptedException) {
+            println("[download] Interrupted - partial file saved for resume\n$ex")
+            return DownloadResult.INTERRUPTED
+        } catch (ex: Throwable) {
+            println("[download] Exception while application downloading\n$ex")
+            errorCallback(ex)
+            return DownloadResult.ERROR
+        } finally {
+            connection?.disconnect()
+            input.safeClose()
+            output.safeClose()
+        }
+    }
+
+    private fun escapeFileSymbols(name: String): String {
+        var fileName = name
+        for (symbol in RESERVED_CHARS) {
+            fileName = fileName.replace(symbol[0], '_')
+        }
+        return fileName
+    }
+
+}
+
+const val GET = "GET"
+const val SC_BAD_REQUEST = 400
+const val SC_PARTIAL_CONTENT = 206
+
+const val IDLE: Int = -30
+const val AWAIT: Int = -10
+const val STARTED: Int = -20
+const val COMPLETED: Int = 101
+const val ERROR: Int = -40
+
+private const val BUFFER_SIZE = 1 * 1024 * 1024
+
+private val RESERVED_CHARS = arrayOf("|", "\\", "/", "?", "*", "<", "\"", ":", ">")
+
+enum class DownloadResult {
+    SUCCESS,
+    INTERRUPTED,
+    ERROR
+}
