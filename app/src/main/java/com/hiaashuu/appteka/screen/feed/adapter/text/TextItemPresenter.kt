@@ -1,0 +1,45 @@
+package com.hiaashuu.appteka.screen.feed.adapter.text
+
+import com.hiaashuu.appteka.util.adapter.ItemPresenter
+import com.hiaashuu.appteka.categories.DEFAULT_LOCALE
+import com.hiaashuu.appteka.screen.feed.FeedResourceProvider
+import com.hiaashuu.appteka.screen.feed.adapter.ItemListener
+import java.util.Locale
+
+class TextItemPresenter(
+    private val locale: Locale,
+    private val resourceProvider: FeedResourceProvider,
+    private val listener: ItemListener,
+) : ItemPresenter<TextItemView, TextItem> {
+
+    override fun bindView(view: TextItemView, item: TextItem, position: Int) {
+        with(item) {
+            if (hasMore) {
+                hasMore = false
+                hasProgress = true
+                listener.onLoadMore(this)
+            }
+        }
+
+        val name = item.user.name.takeIf { !it.isNullOrBlank() }
+            ?: item.user.icon.label?.get(locale.language)
+            ?: item.user.icon.label?.get(DEFAULT_LOCALE).orEmpty()
+        view.setUserName(name)
+        view.setUserIcon(item.user.icon)
+        view.setUserBadge(item.user.primaryBadge)
+        view.setTime(resourceProvider.formatTime(item.time))
+        view.setText(item.text)
+        item.screenshots.takeIf { it.isNotEmpty() }
+            ?.let { view.setImages(item.screenshots) }
+            ?: view.hideImage()
+        if (item.hasProgress) view.showProgress() else view.hideProgress()
+        if (!item.actions.isNullOrEmpty()) view.showMenu() else view.hideMenu()
+        item.reacts.takeIf { !it.isNullOrEmpty() }
+            ?.let { view.setReactions(it) }
+            ?: view.hideReactions()
+        view.setOnPostClickListener { listener.onItemClick(item) }
+        view.setOnMenuClickListener { listener.onMenuClick(item) }
+        view.setOnReactionClickListener { reaction -> listener.onReactionClick(item, reaction) }
+    }
+
+}
