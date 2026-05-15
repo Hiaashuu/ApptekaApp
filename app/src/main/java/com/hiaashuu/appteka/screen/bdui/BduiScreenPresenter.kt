@@ -1,0 +1,158 @@
+package com.hiaashuu.appteka.screen.bdui
+
+import android.os.Bundle
+import android.util.Log
+import com.hiaashuu.appteka.util.SchedulersFactory
+import com.hiaashuu.appteka.util.bdui.model.BduiNode
+import com.hiaashuu.appteka.util.bdui.model.action.BduiRpcResponse
+import com.hiaashuu.appteka.util.bdui.model.action.BduiSequenceAction
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+
+interface BduiScreenPresenter {
+
+    fun attachView(view: BduiScreenView)
+
+    fun detachView()
+
+    fun attachRouter(router: BduiScreenRouter)
+
+    fun detachRouter()
+
+    fun saveState(): Bundle
+
+    fun onBackPressed()
+
+    interface BduiScreenRouter {
+
+        fun leaveScreen()
+
+        fun handleCallback(name: String, data: Any?)
+
+        fun handleRoute(screen: String, params: Map<String, Any>?)
+
+        fun handleOpenUrl(url: String, external: Boolean)
+
+        fun handleShare(text: String, title: String?)
+
+    }
+
+}
+
+class BduiScreenPresenterImpl(
+    private val url: String,
+    private val title: String?,
+    private val interactor: BduiScreenInteractor,
+    private val schedulers: SchedulersFactory,
+    state: Bundle?
+) : BduiScreenPresenter {
+
+    private var view: BduiScreenView? = null
+    private var router: BduiScreenPresenter.BduiScreenRouter? = null
+
+    private var schema: BduiNode? = state?.getSerializable(KEY_SCHEMA) as? BduiNode
+    private var isLoading: Boolean = state?.getBoolean(KEY_LOADING, false) ?: false
+    private var isError: Boolean = state?.getBoolean(KEY_ERROR, false) ?: false
+
+    private val subscriptions = CompositeDisposable()
+
+    override fun attachView(view: BduiScreenView) {
+        this.view = view
+
+        view.setTitle(title)
+
+        subscriptions += view.navigationClicks().subscribe { onBackPressed() }
+        subscriptions += view.retryClicks().subscribe { loadSchema() }
+
+        subscriptions += view.callbackEvents().subscribe { event ->
+            router?.handleCallback(event.name, event.data)
+        }
+
+        subscriptions += view.routeEvents().subscribe { event ->
+            router?.handleRoute(event.screen, event.params)
+        }
+
+        subscriptions += view.openUrlEvents().subscribe { event ->
+            router?.handleOpenUrl(event.url, event.external)
+        }
+
+        subscriptions += view.shareEvents().subscribe { event ->
+            router?.handleShare(event.text, event.title)
+        }
+
+        subscriptions += view.reloadEvents().subscribe {
+            schema = null
+            loadSchema()
+        }
+
+        subscriptions += view.rpcRequests()
+            .flatMapSingle { request ->
+                interactor.executeRpc(request.action)
+                    .observeOn(schedulers.mainThread())
+                    .doOnSuccess { response ->
+                        request.responseEmitter(response)
+                    }
+                    .doOnError { error ->
+                        request.errorEmitter(error)
+                    }
+                    .onErrorReturnItem(BduiRpcResponse(BduiSequenceAction(actions = emptyList())))
+            }
+            .subscribe()
+
+        when {
+            schema != null -> view.showContent(schema!!)
+            isError -> view.showError()
+            else -> loadSchema()
+        }
+    }
+
+    override fun detachView() {
+        subscriptions.clear()
+        this.view = null
+    }
+
+    override fun attachRouter(router: BduiScreenPresenter.BduiScreenRouter) {
+        this.router = router
+    }
+
+    override fun detachRouter() {
+        this.router = null
+    }
+
+    override fun saveState(): Bundle = Bundle().apply {
+        putBoolean(KEY_LOADING, isLoading)
+        putBoolean(KEY_ERROR, isError)
+
+    }
+
+    override fun onBackPressed() {
+        router?.leaveScreen()
+    }
+
+    private fun loadSchema() {
+        isLoading = true
+        isError = false
+        view?.showLoading()
+
+        subscriptions += interactor.loadSchema(url)
+            .observeOn(schedulers.mainThread())
+            .subscribe(
+                { loadedSchema ->
+                    isLoading = false
+                    schema = loadedSchema
+                    view?.showContent(loadedSchema)
+                },
+                { error ->
+                    Log.e("BduiScreen", "Failed to load schema from: $url", error)
+                    isLoading = false
+                    isError = true
+                    view?.showError()
+                }
+            )
+    }
+
+}
+
+private const val KEY_SCHEMA = "schema"
+private const val KEY_LOADING = "loading"
+private const val KEY_ERROR = "error"
