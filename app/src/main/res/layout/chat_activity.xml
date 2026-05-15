@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    android:id="@+id/root"
+    android:fitsSystemWindows="true"
+    tools:context=".screen.chat.ChatActivity">
+
+    <ViewFlipper
+        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:id="@+id/view_flipper">
+
+        <RelativeLayout
+            android:layout_height="match_parent"
+            android:layout_width="match_parent">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:layout_height="match_parent"
+                android:layout_width="match_parent"
+                android:stackFromBottom="true"
+                android:transcriptMode="normal"
+                android:layout_above="@id/input_card"
+                tools:itemCount="1"
+                tools:listitem="@layout/chat_item_inc_text"
+                android:id="@+id/recycler"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false" />
+
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_above="@id/input_card" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_margin="0dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                android:layout_alignParentBottom="true"
+                app:cardCornerRadius="0dp"
+                android:id="@+id/input_card"
+                android:layout_gravity="bottom">
+
+                <LinearLayout
+                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:orientation="vertical">
+
+                    <com.hiaashuu.appteka.uikit.permissions.PermissionBanner
+                        android:id="@+id/permission_banner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
+                    <com.hiaashuu.appteka.screen.chat.view.ChatAttachmentsStrip
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:visibility="gone"
+                        android:id="@+id/attachments_strip" />
+
+                    <LinearLayout
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:paddingEnd="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingBottom="4dp"
+                        android:paddingStart="4dp"
+                        android:paddingTop="4dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:layout_height="44dp"
+                            android:layout_width="44dp"
+                            app:icon="@drawable/ic_image_plus"
+                            android:contentDescription="@string/select_images"
+                            style="@style/Widget.Material3.Button.IconButton"
+                            app:iconPadding="0dp"
+                            android:id="@+id/attach_button"
+                            app:iconGravity="textStart" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_height="wrap_content"
+                            android:layout_width="0dp"
+                            app:hintEnabled="false"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            app:boxBackgroundMode="none"
+                            android:layout_weight="1"
+                            android:id="@+id/message_input_layout">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:layout_height="wrap_content"
+                                android:layout_width="match_parent"
+                                android:textSize="16sp"
+                                android:importantForAutofill="no"
+                                android:textColor="?attr/colorOnSurface"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:paddingTop="8dp"
+                                android:paddingBottom="8dp"
+                                android:background="@null"
+                                android:hint="@string/enter_your_message"
+                                android:minHeight="40dp"
+                                android:textColorHint="?attr/colorOutline"
+                                android:maxLines="5"
+                                android:inputType="textCapSentences|textMultiLine"
+                                android:id="@+id/message_edit" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <FrameLayout
+                            android:layout_height="48dp"
+                            android:layout_width="48dp"
+                            android:layout_marginStart="4dp">
+
+                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                android:layout_height="match_parent"
+                                android:layout_width="match_parent"
+                                android:layout_gravity="center"
+                                android:visibility="gone"
+                                android:indeterminate="true"
+                                app:indicatorSize="48dp"
+                                app:trackThickness="3dp"
+                                app:trackCornerRadius="50%"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:trackColor="@android:color/transparent"
+                                style="@style/Widget.Material3Expressive.CircularProgressIndicator"
+                                android:id="@+id/send_progress" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:layout_height="40dp"
+                                android:layout_width="40dp"
+                                android:layout_gravity="center"
+                                app:icon="@drawable/ic_send"
+                                android:contentDescription="@string/send_to"
+                                style="@style/MaterialButtonPrimary"
+                                app:iconPadding="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:id="@+id/send_button"
+                                app:iconGravity="textStart" />
+
+                        </FrameLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <include
+                layout="@layout/progress_overlay"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+        <include
+            layout="@layout/error_view" />
+
+    </ViewFlipper>
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:layout_height="?attr/actionBarSize"
+        android:layout_width="match_parent"
+        android:id="@+id/toolbar"
+        app:contentInsetStart="0dp"
+        app:contentInsetStartWithNavigation="0dp"
+        app:contentInsetLeft="0dp">
+
+        <include
+            layout="@layout/icon_toolbar" />
+
+    </com.google.android.material.appbar.MaterialToolbar>
+
+</FrameLayout>
