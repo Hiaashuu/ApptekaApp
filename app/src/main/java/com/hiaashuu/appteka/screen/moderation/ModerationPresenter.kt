@@ -1,0 +1,227 @@
+package com.hiaashuu.appteka.screen.moderation
+
+import android.os.Bundle
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.Item
+import com.hiaashuu.appteka.dto.AppEntity
+import com.hiaashuu.appteka.screen.moderation.adapter.ItemListener
+import com.hiaashuu.appteka.screen.moderation.adapter.app.AppItem
+import com.hiaashuu.appteka.core.permissions.CapabilityAction
+import com.hiaashuu.appteka.core.permissions.UserCapabilitiesProvider
+import com.hiaashuu.appteka.user.ModerationProvider
+import com.hiaashuu.appteka.util.SchedulersFactory
+import com.hiaashuu.appteka.util.getParcelableArrayListCompat
+import com.hiaashuu.appteka.util.retryWhenNonAuthErrors
+import dagger.Lazy
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+
+interface ModerationPresenter : ItemListener {
+
+    fun attachView(view: ModerationView)
+
+    fun detachView()
+
+    fun attachRouter(router: ModerationRouter)
+
+    fun detachRouter()
+
+    fun saveState(): Bundle
+
+    fun onBackPressed()
+
+    fun onUpdate()
+
+    fun invalidateApps()
+
+    interface ModerationRouter {
+
+        fun openAppModerationScreen(appId: String, title: String)
+
+        fun leaveScreen()
+
+    }
+
+}
+
+class ModerationPresenterImpl(
+    private val interactor: ModerationInteractor,
+    private val moderationProvider: ModerationProvider,
+    private val capabilitiesProvider: UserCapabilitiesProvider,
+    private val adapterPresenter: Lazy<AdapterPresenter>,
+    private val appConverter: AppConverter,
+    private val resourceProvider: ModerationResourceProvider,
+    private val schedulers: SchedulersFactory,
+    state: Bundle?
+) : ModerationPresenter {
+
+    private var view: ModerationView? = null
+    private var router: ModerationPresenter.ModerationRouter? = null
+
+    private val subscriptions = CompositeDisposable()
+
+    private var items: List<AppItem>? =
+        state?.getParcelableArrayListCompat(KEY_APPS, AppItem::class.java)
+    private var isError: Boolean = state?.getBoolean(KEY_ERROR) == true
+
+    override fun attachView(view: ModerationView) {
+        this.view = view
+
+        subscriptions += view.navigationClicks().subscribe {
+            onBackPressed()
+        }
+        subscriptions += view.retryClicks().subscribe {
+            loadApps()
+        }
+        subscriptions += view.refreshClicks().subscribe {
+            invalidateApps()
+        }
+
+        val finalVote = capabilitiesProvider.getCapabilities()
+            ?.get(CapabilityAction.MODERATION_FINAL_VOTE)
+        val hint = finalVote?.let {
+            if (it.allowed) resourceProvider.votingHintFinal()
+            else resourceProvider.votingHintAdvisory()
+        }
+        view.setVotingHint(hint)
+
+        if (isError) {
+            onError()
+            onReady()
+        } else {
+            items?.let { onReady() } ?: loadApps()
+        }
+    }
+
+    override fun detachView() {
+        subscriptions.clear()
+        this.view = null
+    }
+
+    override fun attachRouter(router: ModerationPresenter.ModerationRouter) {
+        this.router = router
+    }
+
+    override fun detachRouter() {
+        this.router = null
+    }
+
+    override fun saveState() = Bundle().apply {
+        putParcelableArrayList(KEY_APPS, items?.let { ArrayList(items.orEmpty()) })
+        putBoolean(KEY_ERROR, isError)
+    }
+
+    override fun invalidateApps() {
+        items = null
+        loadApps()
+    }
+
+    private fun loadApps() {
+        subscriptions += interactor.listApps()
+            .observeOn(schedulers.mainThread())
+            .doOnSubscribe { if (view?.isPullRefreshing() == false) view?.showProgress() }
+            .doAfterTerminate { onReady() }
+            .subscribe(
+                { onLoaded(it) },
+                { onError() }
+            )
+    }
+
+    private fun loadApps(offsetAppId: String) {
+        subscriptions += interactor.listApps(offsetAppId)
+            .observeOn(schedulers.mainThread())
+            .retryWhenNonAuthErrors()
+            .doAfterTerminate { onReady() }
+            .subscribe(
+                { onLoaded(it) },
+                { onLoadMoreError() }
+            )
+    }
+
+    private fun onLoaded(entities: List<AppEntity>) {
+        isError = false
+        val newItems = entities
+            .map { appConverter.convert(it) }
+            .toList()
+            .apply { if (isNotEmpty()) last().hasMore = true }
+        this.items = this.items
+            ?.apply { if (isNotEmpty()) last().hasProgress = false }
+            ?.plus(newItems) ?: newItems
+    }
+
+    private fun onReady() {
+        val items = this.items
+        when {
+            isError -> {
+                view?.showError()
+            }
+
+            items.isNullOrEmpty() -> {
+                moderationProvider.updateModerationCount(0)
+                view?.showPlaceholder()
+            }
+
+            else -> {
+                moderationProvider.updateModerationCount(items.size)
+                adapterPresenter.get().onDataSourceChanged(items)
+                view?.let {
+                    it.contentUpdated()
+                    if (it.isPullRefreshing()) {
+                        it.stopPullRefreshing()
+                    } else {
+                        it.showContent()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onError() {
+        this.isError = true
+    }
+
+    private fun onLoadMoreError() {
+        items?.last()
+            ?.apply {
+                hasProgress = false
+                hasMore = false
+                hasError = true
+            }
+    }
+
+    override fun onBackPressed() {
+        router?.leaveScreen()
+    }
+
+    override fun onUpdate() {
+        view?.contentUpdated()
+    }
+
+    override fun onItemClick(item: Item) {
+        val app = items?.find { it.id == item.id } ?: return
+        router?.openAppModerationScreen(app.appId, app.title)
+    }
+
+    override fun onRetryClick(item: Item) {
+        val app = items?.find { it.id == item.id } ?: return
+        if (items?.isNotEmpty() == true) {
+            items?.last()?.let {
+                it.hasProgress = true
+                it.hasError = false
+            }
+            items?.indexOf(app)?.let {
+                view?.contentUpdated(it)
+            }
+        }
+        loadApps(app.appId)
+    }
+
+    override fun onLoadMore(item: Item) {
+        val app = items?.find { it.id == item.id } ?: return
+        loadApps(app.appId)
+    }
+
+}
+
+private const val KEY_APPS = "apps"
+private const val KEY_ERROR = "error"
