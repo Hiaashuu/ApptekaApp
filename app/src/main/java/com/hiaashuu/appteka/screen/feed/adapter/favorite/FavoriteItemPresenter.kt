@@ -1,0 +1,51 @@
+package com.hiaashuu.appteka.screen.feed.adapter.favorite
+
+import com.hiaashuu.appteka.util.adapter.ItemPresenter
+import com.hiaashuu.appteka.categories.DEFAULT_LOCALE
+import com.hiaashuu.appteka.screen.feed.FeedResourceProvider
+import com.hiaashuu.appteka.screen.feed.adapter.ItemListener
+import java.util.Locale
+
+class FavoriteItemPresenter(
+    private val locale: Locale,
+    private val resourceProvider: FeedResourceProvider,
+    private val listener: ItemListener,
+) : ItemPresenter<FavoriteItemView, FavoriteItem> {
+
+    override fun bindView(view: FavoriteItemView, item: FavoriteItem, position: Int) {
+        with(item) {
+            if (hasMore) {
+                hasMore = false
+                hasProgress = true
+                listener.onLoadMore(this)
+            }
+        }
+
+        val name = item.user.name.takeIf { !it.isNullOrBlank() }
+            ?: item.user.icon.label?.get(locale.language)
+            ?: item.user.icon.label?.get(DEFAULT_LOCALE).orEmpty()
+        with(view) {
+            setUserName(name)
+            setUserIcon(item.user.icon)
+            setUserBadge(item.user.primaryBadge)
+            setTime(resourceProvider.formatTime(item.time))
+            setIcon(item.icon)
+            setLabel(item.title)
+            setPackage(item.packageName)
+            setText(item.description.orEmpty())
+            item.screenshots.takeIf { it.isNotEmpty() }
+                ?.let { setImages(item.screenshots) }
+                ?: view.hideImage()
+        }
+        if (item.hasProgress) view.showProgress() else view.hideProgress()
+        if (!item.actions.isNullOrEmpty()) view.showMenu() else view.hideMenu()
+        item.reacts.takeIf { !it.isNullOrEmpty() }
+            ?.let { view.setReactions(it) }
+            ?: view.hideReactions()
+        view.setOnPostClickListener { listener.onItemClick(item) }
+        view.setOnAppClickListener { listener.onAppClick(item.appId, item.title) }
+        view.setOnMenuClickListener { listener.onMenuClick(item) }
+        view.setOnReactionClickListener { reaction -> listener.onReactionClick(item, reaction) }
+    }
+
+}
