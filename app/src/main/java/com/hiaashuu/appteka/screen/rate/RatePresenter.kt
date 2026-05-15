@@ -1,0 +1,187 @@
+package com.hiaashuu.appteka.screen.rate
+
+import android.os.Bundle
+import com.hiaashuu.appteka.categories.DEFAULT_LOCALE
+import com.hiaashuu.appteka.core.HOST_URL
+import com.hiaashuu.appteka.user.api.UserBrief
+import com.hiaashuu.appteka.util.SchedulersFactory
+import com.hiaashuu.appteka.util.filterCapabilityErrors
+import com.tomclaw.bananalytics.Bananalytics
+import com.tomclaw.bananalytics.api.BreadcrumbCategory
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+import java.util.Locale
+
+interface RatePresenter {
+
+    fun attachView(view: RateView)
+
+    fun detachView()
+
+    fun attachRouter(router: RateRouter)
+
+    fun detachRouter()
+
+    fun saveState(): Bundle
+
+    fun onBackPressed()
+
+    interface RateRouter {
+
+        fun leaveScreen(success: Boolean)
+
+        fun openShare(title: String, text: String)
+
+    }
+
+}
+
+class RatePresenterImpl(
+    private val appId: String,
+    private val userBrief: UserBrief,
+    startRating: Float,
+    startReview: String,
+    private val bananalytics: Bananalytics,
+    private val interactor: RateInteractor,
+    private val locale: Locale,
+    private val resourceProvider: RateResourceProvider,
+    private val schedulers: SchedulersFactory,
+    state: Bundle?
+) : RatePresenter {
+
+    private var view: RateView? = null
+    private var router: RatePresenter.RateRouter? = null
+
+    private var rating: Float = state?.getFloat(KEY_RATING) ?: startRating
+    private var review: String = state?.getString(KEY_REVIEW) ?: startReview
+
+    private val subscriptions = CompositeDisposable()
+
+    override fun attachView(view: RateView) {
+        this.view = view
+
+        bindData()
+
+        subscriptions += view.navigationClicks().subscribe { onBackPressed() }
+        subscriptions += view.ratingChanged().subscribe {
+            rating = it
+            bindData()
+        }
+        subscriptions += view.reviewEditChanged().subscribe {
+            review = it
+            bindData()
+        }
+        subscriptions += view.submitClicks().subscribe { onSubmitReview() }
+        subscriptions += view.shareClicks().subscribe { onShare() }
+
+        bindMemberInfo(userBrief)
+    }
+
+    private fun bindData() {
+        with(view ?: return) {
+            setRating(rating)
+            setReview(review)
+
+            if (rating > 0) {
+                enableSubmitButton()
+            } else {
+                disableSubmitButton()
+            }
+        }
+    }
+
+    private fun isValidForSubmit(): Boolean {
+        if (rating <= 0) {
+            return false
+        }
+
+        if (rating < 4) {
+            return review.trim().length >= 10
+        }
+        return true
+    }
+
+    private fun onSubmitReview() {
+        bananalytics.leaveBreadcrumb("Submit review: rating=$rating", BreadcrumbCategory.USER_ACTION)
+
+        if (!isValidForSubmit()) {
+            if (rating < 4) {
+                view?.showValidationError(getReviewRequiredError())
+            } else {
+                view?.showValidationError(getRatingRequiredError())
+            }
+            return
+        }
+
+        subscriptions += interactor.submitReview(appId, rating, review)
+            .doOnSubscribe { view?.showProgress() }
+            .observeOn(schedulers.mainThread())
+            .subscribe(
+                { onReviewSubmitted() },
+                { onReviewSubmitError(it) }
+            )
+    }
+
+    private fun onReviewSubmitted() {
+        router?.leaveScreen(success = true)
+    }
+
+    private fun onReviewSubmitError(ex: Throwable) {
+        bananalytics.leaveBreadcrumb("Review submit error", BreadcrumbCategory.ERROR)
+        view?.showContent()
+        ex.filterCapabilityErrors(
+            authError = { view?.showUnauthorizedError() },
+            capabilityDenied = { cap -> view?.showCapabilityDenied(cap) },
+            other = { view?.showError() },
+        )
+    }
+
+    private fun bindMemberInfo(userBrief: UserBrief) {
+        view?.setMemberIcon(userBrief.icon)
+        val name = userBrief.name.takeIf { !it.isNullOrBlank() }
+            ?: userBrief.icon.label?.get(locale.language)
+            ?: userBrief.icon.label?.get(DEFAULT_LOCALE).orEmpty()
+        view?.setMemberName(name)
+    }
+
+    override fun detachView() {
+        this.view = null
+    }
+
+    override fun attachRouter(router: RatePresenter.RateRouter) {
+        this.router = router
+    }
+
+    override fun detachRouter() {
+        this.router = null
+    }
+
+    override fun saveState(): Bundle = Bundle().apply {
+        putFloat(KEY_RATING, rating)
+        putString(KEY_REVIEW, review)
+    }
+
+    override fun onBackPressed() {
+        router?.leaveScreen(success = false)
+    }
+
+    private fun onShare() {
+        val url = "$HOST_URL/app/$appId#review"
+        router?.openShare(
+            title = resourceProvider.shareTitle(),
+            text = url
+        )
+    }
+
+    private fun getReviewRequiredError(): String {
+        return resourceProvider.getReviewRequiredError()
+    }
+
+    private fun getRatingRequiredError(): String {
+        return resourceProvider.getRatingRequiredError()
+    }
+
+}
+
+private const val KEY_RATING = "rating"
+private const val KEY_REVIEW = "review"
