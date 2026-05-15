@@ -1,0 +1,281 @@
+package com.hiaashuu.appteka.screen.distro
+
+import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.content.Intent.ACTION_VIEW
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.download.ApkStorage
+import com.hiaashuu.appteka.screen.details.createDetailsActivityIntent
+import com.hiaashuu.appteka.screen.distro.di.DistroModule
+import com.hiaashuu.appteka.screen.permissions.createPermissionsActivityIntent
+import com.hiaashuu.appteka.screen.upload.createUploadActivityIntent
+import com.hiaashuu.appteka.upload.UploadApk
+import com.hiaashuu.appteka.upload.UploadPackage
+import com.hiaashuu.appteka.util.Analytics
+import com.hiaashuu.appteka.util.openFileIntent
+import java.io.File
+import javax.inject.Inject
+
+class DistroActivity : AppCompatActivity(), DistroPresenter.DistroRouter {
+
+    @Inject
+    lateinit var presenter: DistroPresenter
+
+    @Inject
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    @Inject
+    lateinit var analytics: Analytics
+
+    @Inject
+    lateinit var preferences: DistroPreferencesProvider
+
+    @Inject
+    lateinit var apkStorage: ApkStorage
+
+    private val invalidateDetailsResultLauncher =
+        registerForActivityResult(StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                presenter.invalidateApps()
+            }
+        }
+
+    private val saveFileLauncher =
+        registerForActivityResult(StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    presenter.saveFile(target = uri)
+                }
+            }
+        }
+
+    private var pendingStoragePermissionCallback: ((Boolean) -> Unit)? = null
+
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        pendingStoragePermissionCallback?.invoke(granted)
+        pendingStoragePermissionCallback = null
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val presenterState = savedInstanceState?.getBundle(KEY_PRESENTER_STATE)
+        appComponent
+            .distroComponent(DistroModule(this, presenterState))
+            .inject(activity = this)
+
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.distro_activity)
+
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val view = DistroViewImpl(window.decorView, preferences, adapter)
+
+        presenter.attachView(view)
+
+        if (savedInstanceState == null) {
+            analytics.trackEvent("open-distro-screen")
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        presenter.attachRouter(this)
+    }
+
+    override fun onStop() {
+        presenter.detachRouter()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        presenter.detachView()
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBundle(KEY_PRESENTER_STATE, presenter.saveState())
+    }
+
+    override fun openUploadScreen(pkg: UploadPackage, apk: UploadApk) {
+        val intent = createUploadActivityIntent(context = this, pkg, apk, info = null)
+        startActivity(intent)
+        analytics.trackEvent("distro-app-upload")
+    }
+
+    override fun searchGooglePlay(packageName: String) {
+        try {
+            val intent = Intent(ACTION_VIEW, "market://details?id=$packageName".toUri())
+            invalidateDetailsResultLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            val intent = Intent(
+                ACTION_VIEW,
+                "https://play.google.com/store/apps/details?id=$packageName".toUri()
+            )
+            startActivity(intent)
+        }
+        analytics.trackEvent("distro-open-google-play")
+    }
+
+    override fun searchAppteka(packageName: String, title: String) {
+        val intent = createDetailsActivityIntent(
+            context = this,
+            packageName = packageName,
+            label = title,
+            moderation = false,
+            finishOnly = true
+        )
+        invalidateDetailsResultLauncher.launch(intent)
+        analytics.trackEvent("distro-search-appteka")
+    }
+
+    override fun installApp(path: String) {
+        val intent = openFileIntent(
+            filePath = path,
+            type = "application/vnd.android.package-archive"
+        )
+        startActivity(intent)
+        analytics.trackEvent("distro-install-app")
+    }
+
+    override fun openShareApk(path: String) {
+        val file = File(path)
+        val uri = createFileExternalUri(file)
+        val intent = Intent()
+            .setAction(Intent.ACTION_SEND)
+            .putExtra(Intent.EXTRA_TEXT, file.getName())
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .setType("application/zip")
+        grantUriPermission(uri)
+        startActivity(
+            Intent.createChooser(
+                intent,
+                resources.getText(R.string.send_to)
+            )
+        )
+        analytics.trackEvent("distro-share-apk")
+    }
+
+    override fun openShareBluetooth(path: String) {
+        val file = File(path)
+        val uri = createFileExternalUri(file)
+        val intent = Intent()
+            .setAction(Intent.ACTION_SEND)
+            .putExtra(Intent.EXTRA_TEXT, file.name)
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .setType("application/zip")
+            .setPackage("com.android.bluetooth")
+        grantUriPermission(uri)
+        startActivity(
+            Intent.createChooser(
+                intent,
+                resources.getText(R.string.send_to)
+            )
+        )
+        analytics.trackEvent("distro-share-bluetooth")
+    }
+
+    override fun openPermissionsScreen(permissions: List<String>) {
+        val intent = createPermissionsActivityIntent(context = this, permissions)
+        startActivity(intent)
+        analytics.trackEvent("distro-open-permissions")
+    }
+
+    override fun requestStoragePermissions(callback: (Boolean) -> Unit) {
+        if (!apkStorage.isPermissionRequired()) {
+            callback(true)
+            return
+        }
+        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                callback(true)
+            }
+
+            shouldShowRequestPermissionRationale(permission) -> {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.app_name)
+                    .setMessage(R.string.write_permission_view_downloads)
+                    .setPositiveButton(R.string.ok) { _, _ ->
+                        pendingStoragePermissionCallback = callback
+                        storagePermissionLauncher.launch(permission)
+                    }
+                    .setNegativeButton(R.string.cancel) { _, _ ->
+                        callback(false)
+                    }
+                    .show()
+            }
+
+            else -> {
+                pendingStoragePermissionCallback = callback
+                storagePermissionLauncher.launch(permission)
+            }
+        }
+    }
+
+    override fun requestSaveFile(fileName: String, fileType: String) {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = fileType
+                putExtra(Intent.EXTRA_TITLE, fileName)
+            }
+        saveFileLauncher.launch(intent)
+    }
+
+    override fun leaveScreen() {
+        finish()
+    }
+
+    private fun createFileExternalUri(file: File): Uri {
+        return if (useFileProvider()) {
+            FileProvider.getUriForFile(this, "$packageName.provider", file)
+        } else {
+            Uri.fromFile(file)
+        }
+    }
+
+    private fun grantUriPermission(uri: Uri) {
+        if (useFileProvider()) {
+            val resInfoList: List<ResolveInfo> = packageManager
+                .queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            for (resolveInfo in resInfoList) {
+                val packageName = resolveInfo.activityInfo.packageName
+                grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
+    }
+
+    private fun useFileProvider(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+
+}
+
+fun createDistroActivityIntent(
+    context: Context,
+): Intent = Intent(context, DistroActivity::class.java)
+
+private const val KEY_PRESENTER_STATE = "presenter_state"
