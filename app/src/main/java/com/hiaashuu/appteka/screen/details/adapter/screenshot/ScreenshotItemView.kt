@@ -1,0 +1,50 @@
+package com.hiaashuu.appteka.screen.details.adapter.screenshot
+
+import android.view.View
+import android.widget.ImageView
+import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
+import com.hiaashuu.appteka.util.adapter.ItemView
+import com.hiaashuu.appteka.R
+import com.tomclaw.imageloader.util.fetch
+
+interface ScreenshotItemView : ItemView {
+
+    fun setImage(item: ScreenshotItem)
+
+    fun setOnClickListener(listener: (() -> Unit)?)
+
+}
+
+class ScreenshotItemViewHolder(view: View) : BaseItemViewHolder(view), ScreenshotItemView {
+
+    private val card: View = view.findViewById(R.id.screenshot_card)
+    private val image: ImageView = view.findViewById(R.id.screenshot)
+
+    private var clickListener: (() -> Unit)? = null
+
+    init {
+        card.setOnClickListener { clickListener?.invoke() }
+    }
+
+    override fun setImage(item: ScreenshotItem) {
+        val aspectRatio = item.width.toFloat() / item.height.toFloat()
+        val width = image.layoutParams.height * aspectRatio
+        image.layoutParams.width = width.toInt()
+
+        image.fetch(item.preview.toString()) {
+            centerCrop()
+            onLoading { imageView ->
+                imageView.setImageDrawable(null)
+            }
+        }
+    }
+
+    override fun setOnClickListener(listener: (() -> Unit)?) {
+        this.clickListener = listener
+    }
+
+    override fun onUnbind() {
+        this.clickListener = null
+    }
+
+}
