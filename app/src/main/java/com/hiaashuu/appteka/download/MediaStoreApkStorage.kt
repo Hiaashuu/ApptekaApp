@@ -1,0 +1,307 @@
+package com.hiaashuu.appteka.download
+
+import android.content.ContentValues
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.annotation.RequiresApi
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+
+@RequiresApi(Build.VERSION_CODES.Q)
+class MediaStoreApkStorage(
+    private val context: Context
+) : ApkStorage {
+
+    private val contentResolver get() = context.contentResolver
+
+    private val cacheDir: File by lazy {
+        File(context.cacheDir, CACHE_DIR).apply { mkdirs() }
+    }
+
+    private val sessionUris = mutableMapOf<String, Uri>()
+
+    override fun openWrite(fileName: String): OutputStream {
+        deleteTmp(fileName)
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, "$fileName.$APK_EXTENSION.$TMP_EXTENSION")
+            put(MediaStore.Downloads.MIME_TYPE, TMP_MIME_TYPE)
+            put(MediaStore.Downloads.RELATIVE_PATH, RELATIVE_PATH)
+        }
+
+        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            ?: throw IllegalStateException("Failed to create file in MediaStore")
+
+        sessionUris[fileName] = uri
+
+        return contentResolver.openOutputStream(uri)
+            ?: throw IllegalStateException("Failed to open output stream")
+    }
+
+    override fun commit(fileName: String): Boolean {
+
+        val uri = sessionUris[fileName]
+            ?: findFileUri("$fileName.$APK_EXTENSION.$TMP_EXTENSION")
+            ?: return false
+
+        delete(fileName)
+
+        val updateValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, "$fileName.$APK_EXTENSION")
+            put(MediaStore.Downloads.MIME_TYPE, APK_MIME_TYPE)
+        }
+
+        return try {
+            val success = contentResolver.update(uri, updateValues, null, null) > 0
+            if (success) {
+
+                sessionUris[fileName] = uri
+            }
+            success
+        } catch (ex: Throwable) {
+            false
+        }
+    }
+
+    override fun openRead(fileName: String): InputStream? {
+        val uri = sessionUris[fileName] ?: findFileUri("$fileName.$APK_EXTENSION") ?: return null
+        return try {
+            contentResolver.openInputStream(uri)
+        } catch (ex: Throwable) {
+            null
+        }
+    }
+
+    override fun getInstallUri(fileName: String): Uri? {
+
+        val uri = sessionUris[fileName]
+            ?: findFileUri("$fileName.$APK_EXTENSION")
+            ?: return null
+
+        return try {
+
+            contentResolver.openInputStream(uri)?.close()
+            uri
+        } catch (ex: Throwable) {
+
+            sessionUris.remove(fileName)
+            null
+        }
+    }
+
+    override fun exists(fileName: String): Boolean {
+        return sessionUris.containsKey(fileName)
+                || findFileUri("$fileName.$APK_EXTENSION") != null
+    }
+
+    override fun delete(fileName: String): Boolean {
+        sessionUris.remove(fileName)
+        File(cacheDir, "$fileName.$APK_EXTENSION").delete()
+        val uri = findFileUri("$fileName.$APK_EXTENSION") ?: return false
+        return try {
+            contentResolver.delete(uri, null, null) > 0
+        } catch (ex: Throwable) {
+            false
+        }
+    }
+
+    override fun deleteTmp(fileName: String): Boolean {
+        sessionUris.remove(fileName)
+        val uri = findFileUri("$fileName.$APK_EXTENSION.$TMP_EXTENSION") ?: return false
+        return try {
+            contentResolver.delete(uri, null, null) > 0
+        } catch (ex: Throwable) {
+            false
+        }
+    }
+
+    override fun getTmpSize(fileName: String): Long {
+        val uri = findFileUri("$fileName.$APK_EXTENSION.$TMP_EXTENSION") ?: return 0L
+
+        val projection = arrayOf(MediaStore.Downloads.SIZE)
+        return try {
+            contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads.SIZE))
+                } else {
+                    0L
+                }
+            } ?: 0L
+        } catch (ex: Throwable) {
+            0L
+        }
+    }
+
+    override fun openAppend(fileName: String): OutputStream {
+        val uri = findFileUri("$fileName.$APK_EXTENSION.$TMP_EXTENSION")
+
+        if (uri == null) {
+            return openWrite(fileName)
+        }
+
+        sessionUris[fileName] = uri
+
+        return contentResolver.openOutputStream(uri, "wa")
+            ?: throw IllegalStateException("Failed to open append stream")
+    }
+
+    override fun listApkFiles(): List<ApkInfo> {
+        val projection = arrayOf(
+            MediaStore.Downloads._ID,
+            MediaStore.Downloads.DISPLAY_NAME,
+            MediaStore.Downloads.SIZE,
+            MediaStore.Downloads.DATE_MODIFIED,
+        )
+        val selection =
+            "${MediaStore.Downloads.RELATIVE_PATH} = ? AND ${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
+        val selectionArgs = arrayOf(RELATIVE_PATH, "%.$APK_EXTENSION")
+
+        val result = mutableListOf<ApkInfo>()
+
+        try {
+            contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads.SIZE)
+                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads.DATE_MODIFIED)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val displayName = cursor.getString(nameColumn)
+                    val size = cursor.getLong(sizeColumn)
+                    val dateModified = cursor.getLong(dateColumn) * 1000
+
+                    if (displayName.endsWith(".$TMP_EXTENSION")) continue
+
+                    val uri =
+                        Uri.withAppendedPath(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                            id.toString()
+                        )
+                    val fileName = displayName.removeSuffix(".$APK_EXTENSION")
+
+                    result.add(
+                        ApkInfo(
+                            fileName = fileName,
+                            uri = uri,
+                            size = size,
+                            lastModified = dateModified,
+                        )
+                    )
+                }
+            }
+        } catch (ex: Throwable) {
+
+        }
+
+        return result
+    }
+
+    override fun clearAll(): Int {
+        sessionUris.clear()
+        cacheDir.listFiles()?.forEach { it.delete() }
+
+        val selection =
+            "${MediaStore.Downloads.RELATIVE_PATH} = ? AND ${MediaStore.Downloads.DISPLAY_NAME} LIKE ?"
+        val selectionArgs = arrayOf(RELATIVE_PATH, "%.$APK_EXTENSION")
+
+        return try {
+            contentResolver.delete(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                selection,
+                selectionArgs
+            )
+        } catch (ex: Throwable) {
+            0
+        }
+    }
+
+    override fun copyToStorage(input: InputStream, fileName: String): Uri? {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, "$fileName.$APK_EXTENSION")
+            put(MediaStore.Downloads.MIME_TYPE, APK_MIME_TYPE)
+            put(MediaStore.Downloads.RELATIVE_PATH, RELATIVE_PATH)
+        }
+
+        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            ?: return null
+
+        return try {
+            contentResolver.openOutputStream(uri)?.use { output ->
+                input.copyTo(output)
+                output.flush()
+            }
+            uri
+        } catch (ex: Throwable) {
+            contentResolver.delete(uri, null, null)
+            null
+        }
+    }
+
+    override fun getFilePath(fileName: String): String? {
+        val uri = sessionUris[fileName] ?: findFileUri("$fileName.$APK_EXTENSION") ?: return null
+
+        val cachedFile = File(cacheDir, "$fileName.$APK_EXTENSION")
+        if (cachedFile.exists()) {
+            return cachedFile.absolutePath
+        }
+
+        return try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                cachedFile.outputStream().use { output ->
+                    input.copyTo(output)
+                    output.flush()
+                }
+            }
+            cachedFile.absolutePath
+        } catch (ex: Throwable) {
+            null
+        }
+    }
+
+    override fun isPermissionRequired(): Boolean = false
+
+    private fun findFileUri(displayName: String): Uri? {
+        val projection = arrayOf(MediaStore.Downloads._ID)
+        val selection =
+            "${MediaStore.Downloads.DISPLAY_NAME} = ? AND ${MediaStore.Downloads.RELATIVE_PATH} = ?"
+        val selectionArgs = arrayOf(displayName, RELATIVE_PATH)
+
+        return try {
+            contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID))
+                    Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id.toString())
+                } else {
+                    null
+                }
+            }
+        } catch (ex: Throwable) {
+            null
+        }
+    }
+
+}
+
+private const val APPTEKA_DIR = "Appteka"
+private const val RELATIVE_PATH = "Download/$APPTEKA_DIR/"
+private const val CACHE_DIR = "apk_cache"
+private const val APK_EXTENSION = "apk"
+private const val TMP_EXTENSION = "tmp"
+private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
+private const val TMP_MIME_TYPE = "application/octet-stream"
