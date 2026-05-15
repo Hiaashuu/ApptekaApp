@@ -1,0 +1,758 @@
+package com.hiaashuu.appteka.screen.details
+
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.Item
+import com.hiaashuu.appteka.download.COMPLETED
+import com.hiaashuu.appteka.download.DownloadManager
+import com.hiaashuu.appteka.download.IDLE
+import com.hiaashuu.appteka.screen.details.adapter.abi.AbiResourceProvider
+import com.hiaashuu.appteka.screen.details.adapter.ItemListener
+import com.hiaashuu.appteka.screen.details.adapter.play.PlaySecurityStatus
+import com.hiaashuu.appteka.screen.details.adapter.screenshot.ScreenshotItem
+import com.hiaashuu.appteka.screen.details.adapter.status.StatusAction
+import com.hiaashuu.appteka.core.permissions.CapabilityAction
+import com.hiaashuu.appteka.core.permissions.CapabilityPolicy
+import com.hiaashuu.appteka.screen.details.api.Details
+import com.hiaashuu.appteka.screen.details.api.SECURITY_STATUS_COMPLETED
+import com.hiaashuu.appteka.screen.details.api.SECURITY_VERDICT_MALWARE
+import com.hiaashuu.appteka.screen.details.api.SECURITY_VERDICT_SUSPICIOUS
+import com.hiaashuu.appteka.screen.details.api.TranslationResponse
+import com.hiaashuu.appteka.screen.gallery.GalleryItem
+import com.hiaashuu.appteka.user.api.UserBrief
+import com.hiaashuu.appteka.util.NOT_INSTALLED
+import com.hiaashuu.appteka.util.PackageObserver
+import com.hiaashuu.appteka.util.SchedulersFactory
+import com.hiaashuu.appteka.util.filterCapabilityErrors
+import com.hiaashuu.appteka.util.filterUnauthorizedErrors
+import com.hiaashuu.appteka.util.getParcelableCompat
+import com.hiaashuu.appteka.util.retryWhenNonAuthErrors
+import com.tomclaw.bananalytics.Bananalytics
+import com.tomclaw.bananalytics.api.BreadcrumbCategory
+import dagger.Lazy
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+
+interface DetailsPresenter : ItemListener {
+
+    fun attachView(view: DetailsView)
+
+    fun detachView()
+
+    fun attachRouter(router: DetailsRouter)
+
+    fun detachRouter()
+
+    fun saveState(): Bundle
+
+    fun onBackPressed()
+
+    fun showSnackbar(text: String)
+
+    fun invalidateDetails()
+
+    interface DetailsRouter {
+
+        fun leaveScreen()
+
+        fun leaveModeration()
+
+        fun requestStoragePermissions(callback: () -> Unit)
+
+        fun openPermissionsScreen(permissions: List<String>)
+
+        fun openRatingsScreen(appId: String)
+
+        fun openProfile(userId: Int)
+
+        fun launchApp(packageName: String)
+
+        fun installApp(uri: Uri)
+
+        fun removeApp(packageName: String)
+
+        fun openRateScreen(
+            appId: String,
+            userBrief: UserBrief,
+            rating: Float,
+            review: String?,
+            label: String?,
+            icon: String?
+        )
+
+        fun openEditMetaScreen(
+            appId: String,
+            label: String?,
+            icon: String?,
+            packageName: String,
+            sha1: String,
+            size: Long,
+        )
+
+        fun openUnpublishScreen(appId: String, label: String?)
+
+        fun openUnlinkScreen(appId: String, label: String?)
+
+        fun openAbuseScreen(url: String, label: String?, text: String)
+
+        fun openDetailsScreen(appId: String, label: String?)
+
+        fun openChatScreen(topicId: Int, label: String?)
+
+        fun openStoreScreen()
+
+        fun openGooglePlay(packageName: String)
+
+        fun startDownload(label: String, version: String, icon: String?, appId: String, url: String)
+
+        fun openShare(title: String, text: String)
+
+        fun openLoginScreen()
+
+        fun openGallery(items: List<GalleryItem>, current: Int)
+
+    }
+
+}
+
+class DetailsPresenterImpl(
+    private val appId: String?,
+    private val packageName: String?,
+    private val moderation: Boolean,
+    private val finishOnly: Boolean,
+    private var openReview: Boolean,
+    private val bananalytics: Bananalytics,
+    private val interactor: DetailsInteractor,
+    private val resourceProvider: DetailsResourceProvider,
+    private val abiResourceProvider: AbiResourceProvider,
+    private val adapterPresenter: Lazy<AdapterPresenter>,
+    private val detailsConverter: DetailsConverter,
+    private val packageObserver: PackageObserver,
+    private val downloadManager: DownloadManager,
+    private val schedulers: SchedulersFactory,
+    state: Bundle?
+) : DetailsPresenter {
+
+    private var view: DetailsView? = null
+    private var router: DetailsPresenter.DetailsRouter? = null
+
+    private var details: Details? = state?.getParcelableCompat(KEY_DETAILS, Details::class.java)
+    private var installedVersionCode: Int = state?.getInt(KEY_INSTALLED_VERSION) ?: NOT_INSTALLED
+    private var downloadState: Int = state?.getInt(KEY_DOWNLOAD_STATE) ?: IDLE
+    private var needInstall: Boolean = state?.getBoolean(KEY_NEED_INSTALL) == true
+    private var isFavorite: Boolean = state?.getBoolean(KEY_IS_FAVORITE) == true
+    private var translationData: TranslationResponse? =
+        state?.getParcelableCompat(KEY_TRANSLATION_DATA, TranslationResponse::class.java)
+    private var translationState: Int = state?.getInt(KEY_TRANSLATION_STATE) ?: TRANSLATION_ORIGINAL
+
+    private val items = ArrayList<Item>()
+
+    private val subscriptions = CompositeDisposable()
+    private val observerSubscription = CompositeDisposable()
+
+    override fun attachView(view: DetailsView) {
+        this.view = view
+
+        subscriptions += view.navigationClicks().subscribe { onBackPressed() }
+        subscriptions += view.swipeRefresh().subscribe { invalidateDetails() }
+        subscriptions += view.shareClicks().subscribe {
+            val details = details ?: return@subscribe
+            router?.openShare(
+                title = resourceProvider.shareTitle(),
+                text = resourceProvider.formatShareText(
+                    details.url,
+                    details.info.label,
+                    details.info.labels,
+                    details.info.size
+                )
+            )
+        }
+        subscriptions += view.editClicks().subscribe {
+            appId?.let { appId ->
+                val info = details?.info ?: return@subscribe
+                router?.openEditMetaScreen(
+                    appId = appId,
+                    label = info.label,
+                    icon = info.icon,
+                    packageName = info.packageName,
+                    sha1 = info.sha1,
+                    size = info.size,
+                )
+            }
+        }
+        subscriptions += view.unpublishClicks().subscribe {
+            appId?.let { appId -> router?.openUnpublishScreen(appId, details?.info?.label) }
+        }
+        subscriptions += view.unlinkClicks().subscribe {
+            appId?.let { appId -> router?.openUnlinkScreen(appId, details?.info?.label) }
+        }
+        subscriptions += view.deleteClicks().subscribe { isConfirmed ->
+            if (!isConfirmed) {
+                view.showDeletionDialog()
+            } else {
+                deleteFromStore()
+            }
+        }
+        subscriptions += view.abuseClicks().subscribe {
+            val url = details?.url ?: return@subscribe
+            val info = details?.info ?: return@subscribe
+            val label = info.label
+            val text = resourceProvider.formatAbuseText(
+                label = info.label,
+                packageName = info.packageName,
+                version = info.version,
+                versionCode = info.versionCode,
+                size = info.size,
+                url = url,
+            )
+            appId?.let { appId -> router?.openAbuseScreen(url, label, text) }
+        }
+        subscriptions += view.versionClicks().subscribe { version ->
+            details?.let { details ->
+                router?.leaveScreen()
+                router?.openDetailsScreen(version.appId, details.info.label)
+            }
+        }
+        subscriptions += view.moderationClicks().subscribe { isApprove ->
+            sendModerationDecision(isApprove)
+        }
+        subscriptions += view.retryClicks().subscribe { invalidateDetails() }
+        subscriptions += view.favoriteClicks().subscribe { isFavorite ->
+            markFavorite(isFavorite)
+        }
+        subscriptions += view.loginClicks().subscribe {
+            router?.openLoginScreen()
+        }
+        subscriptions += view.securityDownloadConfirmClicks().subscribe {
+            router?.requestStoragePermissions { onInstallBypassingAbiCheck() }
+        }
+        subscriptions += view.abiDownloadConfirmClicks().subscribe {
+            router?.requestStoragePermissions { onInstall() }
+        }
+
+        if (moderation) {
+            view.showModeration()
+        }
+
+        if (details != null) {
+            dispatchPackageStatus()
+        } else {
+            loadDetails()
+        }
+    }
+
+    override fun detachView() {
+        subscriptions.clear()
+        observerSubscription.clear()
+        view?.onDismiss()
+        this.view = null
+    }
+
+    override fun attachRouter(router: DetailsPresenter.DetailsRouter) {
+        this.router = router
+    }
+
+    override fun detachRouter() {
+        this.router = null
+    }
+
+    override fun saveState() = Bundle().apply {
+        putParcelable(KEY_DETAILS, details)
+        putInt(KEY_INSTALLED_VERSION, installedVersionCode)
+        putInt(KEY_DOWNLOAD_STATE, downloadState)
+        putBoolean(KEY_NEED_INSTALL, needInstall)
+        putBoolean(KEY_IS_FAVORITE, isFavorite)
+        putParcelable(KEY_TRANSLATION_DATA, translationData)
+        putInt(KEY_TRANSLATION_STATE, translationState)
+    }
+
+    private fun loadDetails() {
+        subscriptions += interactor.loadDetails(appId, packageName)
+            .observeOn(schedulers.mainThread())
+            .retryWhenNonAuthErrors()
+            .doOnSubscribe {
+                view?.hideMenu()
+                view?.hideError()
+                view?.showProgress()
+            }
+            .subscribe(
+                { onDetailsLoaded(it) },
+                { onLoadingError(it) }
+            )
+    }
+
+    private fun onDetailsLoaded(details: Details) {
+        this.details = details
+        this.isFavorite = details.isFavorite == true
+        details.translation?.let { translation ->
+            this.translationData = translation
+            this.translationState = TRANSLATION_TRANSLATED
+        }
+        dispatchPackageStatus()
+    }
+
+    private fun dispatchPackageStatus() {
+        val packageName = details?.info?.packageName ?: return
+        val appId = details?.info?.appId ?: return
+        observerSubscription.clear()
+        observerSubscription += packageObserver.observe(packageName)
+            .map { installedVersionCode ->
+                this.installedVersionCode = installedVersionCode
+            }
+            .flatMap { downloadManager.status(appId) }
+            .map { downloadState ->
+                this.downloadState = downloadState
+            }
+            .observeOn(schedulers.mainThread())
+            .subscribeOn(schedulers.io())
+            .subscribe(
+                {
+                    tryInstall()
+                    bindDetails()
+                    view?.showContent()
+                    if (openReview) {
+                        openReview = false
+                        onRateClick(rating = 0f, review = null)
+                    }
+                }, {}
+            )
+    }
+
+    private fun bindDetails() {
+        val details = this.details ?: return
+
+        items.clear()
+        items += detailsConverter.convert(
+            details,
+            downloadState,
+            installedVersionCode,
+            moderation,
+            translationData,
+            translationState
+        )
+
+        bindItems()
+
+        bindMenu()
+
+        view?.contentUpdated()
+    }
+
+    private fun bindMenu() {
+        view?.showMenu(
+            isFavorite = isFavorite,
+            canEdit = isCapabilityAllowed(CapabilityAction.APP_EDIT_META),
+            canUnlink = isCapabilityAllowed(CapabilityAction.APP_UNLINK),
+            canUnpublish = isCapabilityAllowed(CapabilityAction.APP_UNPUBLISH),
+            canDelete = isCapabilityAllowed(CapabilityAction.APP_DELETE)
+        )
+    }
+
+    private fun bindItems() {
+        adapterPresenter.get().onDataSourceChanged(items)
+    }
+
+    private fun tryInstall(): Boolean {
+        val details = details ?: return false
+        if (needInstall && downloadState == COMPLETED) {
+            val uri = downloadManager.getInstallUri(
+                label = details.info.label.orEmpty(),
+                version = details.info.version,
+                appId = details.info.appId
+            )
+            if (uri != null) {
+                router?.installApp(uri)
+                needInstall = false
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isCapabilityAllowed(action: String): Boolean {
+        return CapabilityPolicy.isAllowed(
+            action = action,
+            capabilities = details?.capabilities,
+            allowOnUnknown = false,
+        )
+    }
+
+    private fun sendModerationDecision(isApprove: Boolean) {
+        val details = details ?: return
+        subscriptions += interactor.sendModerationDecision(details.info.appId, isApprove)
+            .toObservable()
+            .observeOn(schedulers.mainThread())
+            .retryWhenNonAuthErrors()
+            .doOnSubscribe {
+                view?.hideMenu()
+                view?.showProgress()
+            }
+            .subscribe(
+                { onModerationDecisionSent() },
+                { onActionError(it) }
+            )
+    }
+
+    private fun onModerationDecisionSent() {
+        router?.leaveModeration()
+    }
+
+    private fun markFavorite(isFavorite: Boolean) {
+        val details = details ?: return
+        subscriptions += interactor.markFavorite(details.info.appId, isFavorite)
+            .toObservable()
+            .observeOn(schedulers.mainThread())
+            .subscribe(
+                { onFavoriteMarked(isFavorite) },
+                { onFavoriteError(it, isFavorite) }
+            )
+    }
+
+    private fun onFavoriteMarked(isFavorite: Boolean) {
+        this.isFavorite = isFavorite
+        val text = if (isFavorite) {
+            resourceProvider.markedFavorite()
+        } else {
+            resourceProvider.unmarkedFavorite()
+        }
+        bindMenu()
+        view?.showSnackbar(text)
+    }
+
+    private fun onFavoriteError(ex: Throwable, isFavorite: Boolean) {
+        ex.filterUnauthorizedErrors({ view?.showUnauthorizedError() }) {
+            val text = if (isFavorite) {
+                resourceProvider.markFavoriteError()
+            } else {
+                resourceProvider.unmarkFavoriteError()
+            }
+            view?.showSnackbar(text)
+        }
+    }
+
+    private fun deleteFromStore() {
+        bananalytics.leaveBreadcrumb("Delete from store", BreadcrumbCategory.USER_ACTION)
+        val details = details ?: return
+        subscriptions += interactor.deleteApplication(details.info.appId)
+            .toObservable()
+            .observeOn(schedulers.mainThread())
+            .retryWhenNonAuthErrors()
+            .doOnSubscribe {
+                view?.hideMenu()
+                view?.showProgress()
+            }
+            .subscribe(
+                { onApplicationDeletedFromStore() },
+                { onActionError(it) }
+            )
+    }
+
+    private fun onApplicationDeletedFromStore() {
+        router?.leaveScreen()
+    }
+
+    private fun onLoadingError(ex: Throwable) {
+        bananalytics.leaveBreadcrumb("Loading error: ${ex.message}", BreadcrumbCategory.ERROR)
+        bananalytics.trackException(ex, mapOf("screen" to "details", "appId" to appId.orEmpty()))
+        ex.filterUnauthorizedErrors({ view?.showUnauthorizedError() }) {
+            view?.hideMenu()
+            view?.showContent()
+            view?.showError()
+        }
+    }
+
+    private fun onActionError(ex: Throwable) {
+        bananalytics.leaveBreadcrumb("Action error: ${ex.message}", BreadcrumbCategory.ERROR)
+        bananalytics.trackException(ex, mapOf("screen" to "details", "appId" to appId.orEmpty()))
+        ex.filterCapabilityErrors(
+            authError = { view?.showUnauthorizedError() },
+            capabilityDenied = { cap ->
+                view?.showContent()
+                bindDetails()
+                view?.showCapabilityDenied(cap)
+            },
+            other = {
+                view?.hideMenu()
+                view?.showContent()
+                view?.showError()
+            },
+        )
+    }
+
+    override fun onBackPressed() {
+        router?.leaveScreen()
+        if (!finishOnly) {
+            router?.openStoreScreen()
+        }
+    }
+
+    override fun showSnackbar(text: String) {
+        view?.showSnackbar(text)
+    }
+
+    override fun invalidateDetails() {
+        loadDetails()
+    }
+
+    override fun onProfileClick(userId: Int) {
+        router?.openProfile(userId)
+    }
+
+    override fun onPermissionsClick(permissions: List<String>) {
+        router?.openPermissionsScreen(permissions)
+    }
+
+    override fun onScoresClick() {
+        details?.info?.appId?.let { appId ->
+            router?.openRatingsScreen(appId)
+        }
+    }
+
+    override fun onInstallClick() {
+        bananalytics.leaveBreadcrumb("Install clicked", BreadcrumbCategory.USER_ACTION)
+        val security = details?.security
+        if (security?.status == SECURITY_STATUS_COMPLETED) {
+            when (security.verdict) {
+                SECURITY_VERDICT_MALWARE -> {
+                    view?.showSecurityWarningDialog(
+                        title = resourceProvider.securityWarningMalwareTitle(),
+                        message = resourceProvider.securityWarningMalwareMessage(),
+                        downloadButton = resourceProvider.securityWarningDownloadAnyway()
+                    )
+                    return
+                }
+                SECURITY_VERDICT_SUSPICIOUS -> {
+                    view?.showSecurityWarningDialog(
+                        title = resourceProvider.securityWarningSuspiciousTitle(),
+                        message = resourceProvider.securityWarningSuspiciousMessage(),
+                        downloadButton = resourceProvider.securityWarningDownloadAnyway()
+                    )
+                    return
+                }
+            }
+        }
+        router?.requestStoragePermissions { onInstallBypassingAbiCheck() }
+    }
+
+    private fun onInstallBypassingAbiCheck() {
+        val abiList = details?.info?.abi
+        if (!abiList.isNullOrEmpty() && !abiResourceProvider.checkCompatibility(abiList)) {
+            view?.showAbiWarningDialog(
+                title = resourceProvider.abiWarningTitle(),
+                message = resourceProvider.abiWarningMessage(),
+                downloadButton = resourceProvider.securityWarningDownloadAnyway()
+            )
+            return
+        }
+        onInstall()
+    }
+
+    private fun onInstall() {
+        val details = details ?: return
+        needInstall = true
+
+        router?.startDownload(
+            label = details.info.label.orEmpty(),
+            version = details.info.version,
+            appId = details.info.appId,
+            icon = details.info.icon,
+            url = details.link
+        )
+
+        if (tryInstall()) {
+            return
+        }
+    }
+
+    override fun onLaunchClick(packageName: String) {
+        bananalytics.leaveBreadcrumb("Launch app: $packageName", BreadcrumbCategory.USER_ACTION)
+        router?.launchApp(packageName)
+    }
+
+    override fun onRemoveClick(packageName: String) {
+        bananalytics.leaveBreadcrumb("Remove app: $packageName", BreadcrumbCategory.USER_ACTION)
+        router?.removeApp(packageName)
+    }
+
+    override fun onCancelClick(appId: String) {
+        downloadManager.cancel(appId)
+    }
+
+    override fun onDiscussClick() {
+        bananalytics.leaveBreadcrumb("Open discussion", BreadcrumbCategory.USER_ACTION)
+        val details = details ?: return
+        if (details.topicId != null) {
+            router?.openChatScreen(details.topicId, details.info.label)
+        } else {
+            subscriptions += interactor.createTopic(details.info.packageName)
+                .toObservable()
+                .observeOn(schedulers.mainThread())
+                .retryWhenNonAuthErrors()
+                .subscribe(
+                    { router?.openChatScreen(topicId = it.topic.topicId, label = it.topic.title) },
+                    {
+                        it.filterCapabilityErrors(
+                            authError = { view?.showUnauthorizedError() },
+                            capabilityDenied = { cap -> view?.showCapabilityDenied(cap) },
+                            other = { showSnackbar(resourceProvider.createTopicError()) },
+                        )
+                    }
+                )
+        }
+    }
+
+    override fun onTranslateClick() {
+        if (translationData != null) {
+            translationState = when (translationState) {
+                TRANSLATION_ORIGINAL -> TRANSLATION_TRANSLATED
+                TRANSLATION_TRANSLATED -> TRANSLATION_ORIGINAL
+                else -> translationState
+            }
+            bindDetails()
+            view?.showContent()
+            return
+        }
+        val appId = appId ?: details?.info?.appId ?: return
+        subscriptions += interactor.translate(appId)
+            .toObservable()
+            .doOnSubscribe { onTranslationStarted() }
+            .observeOn(schedulers.mainThread())
+            .subscribe(
+                { onTranslationLoaded(it) },
+                { onTranslationError() }
+            )
+    }
+
+    private fun onTranslationStarted() {
+        translationState = TRANSLATION_PROGRESS
+        bindDetails()
+        view?.showContent()
+    }
+
+    private fun onTranslationLoaded(response: TranslationResponse) {
+        translationData = response
+        translationState = TRANSLATION_TRANSLATED
+        bindDetails()
+        view?.showContent()
+    }
+
+    private fun onTranslationError() {
+        translationState = TRANSLATION_ORIGINAL
+        bindDetails()
+        view?.showContent()
+        view?.showSnackbar(resourceProvider.translationError())
+    }
+
+    override fun onGooglePlayClick() {
+        val info = details?.info ?: return
+        router?.openGooglePlay(info.packageName)
+    }
+
+    override fun onRateClick(rating: Float, review: String?) {
+        bananalytics.leaveBreadcrumb("Rate app", BreadcrumbCategory.USER_ACTION)
+        val details = details ?: return
+        subscriptions += interactor.getUserBrief()
+            .toObservable()
+            .observeOn(schedulers.mainThread())
+            .retryWhenNonAuthErrors()
+            .subscribe(
+                { userBrief ->
+                    router?.openRateScreen(
+                        details.info.appId,
+                        userBrief,
+                        rating,
+                        review,
+                        details.info.label,
+                        details.info.icon
+                    )
+                },
+                {
+                    it.filterUnauthorizedErrors({ view?.showUnauthorizedError() }) {
+                        showSnackbar(resourceProvider.rateAppError())
+                    }
+                }
+            )
+    }
+
+    override fun onVersionsClick() {
+        val info = details?.info ?: return
+        val versions = details?.versions ?: return
+        val items = versions
+            .sortedBy { it.verCode }
+            .reversed()
+            .map { version ->
+                VersionItem(
+                    versionId = version.appId.hashCode(),
+                    appId = version.appId,
+                    title = resourceProvider.formatVersion(version),
+                    compatible = version.sdkVersion <= Build.VERSION.SDK_INT,
+                    newer = version.verCode > info.versionCode,
+                )
+            }
+        view?.showVersionsDialog(items)
+    }
+
+    override fun onStatusAction(type: StatusAction) {
+        val info = details?.info ?: return
+        val appId = appId ?: return
+        when (type) {
+            StatusAction.EDIT_META -> router?.openEditMetaScreen(
+                appId = appId,
+                label = info.label,
+                icon = info.icon,
+                packageName = info.packageName,
+                sha1 = info.sha1,
+                size = info.size,
+            )
+
+            StatusAction.UNPUBLISH -> router?.openUnpublishScreen(
+                appId, details?.info?.label
+            )
+
+            else -> Unit
+        }
+    }
+
+    override fun onScreenshotClick(items: List<ScreenshotItem>, clicked: Int) {
+        router?.openGallery(
+            items = items.map { GalleryItem(it.original, it.width, it.height) },
+            current = clicked,
+        )
+    }
+
+    override fun onRequestSecurityScan(appId: String) {
+        subscriptions += interactor.requestSecurityScan(appId)
+            .toObservable()
+            .observeOn(schedulers.mainThread())
+            .subscribe(
+                { onSecurityScanRequested() },
+                { onSecurityScanError(it) }
+            )
+    }
+
+    override fun onSecurityInfoClick(status: PlaySecurityStatus, score: Int?) {
+        view?.showSecurityInfoDialog(status, score)
+    }
+
+    private fun onSecurityScanRequested() {
+        view?.showSnackbar(resourceProvider.securityScanRequestedText())
+        invalidateDetails()
+    }
+
+    private fun onSecurityScanError(ex: Throwable) {
+        ex.filterUnauthorizedErrors({ view?.showUnauthorizedError() }) {
+            view?.showSnackbar(resourceProvider.securityScanErrorText())
+        }
+    }
+
+}
+
+private const val KEY_DETAILS = "details"
+private const val KEY_INSTALLED_VERSION = "versionCode"
+private const val KEY_DOWNLOAD_STATE = "downloadState"
+private const val KEY_NEED_INSTALL = "needInstall"
+private const val KEY_IS_FAVORITE = "isFavorite"
+private const val KEY_TRANSLATION_DATA = "translation"
+private const val KEY_TRANSLATION_STATE = "translationState"
