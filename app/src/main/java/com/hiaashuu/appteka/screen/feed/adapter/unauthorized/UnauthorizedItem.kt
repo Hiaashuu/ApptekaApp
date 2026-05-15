@@ -1,0 +1,27 @@
+package com.hiaashuu.appteka.screen.feed.adapter.unauthorized
+
+import android.os.Parcelable
+import com.hiaashuu.appteka.screen.feed.adapter.FeedItem
+import com.hiaashuu.appteka.screen.feed.api.Reaction
+import com.hiaashuu.appteka.user.api.UserBrief
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class UnauthorizedItem(
+    override val id: Long,
+) : FeedItem, Parcelable {
+    override val user: UserBrief?
+        get() = null
+    override val actions: List<String>?
+        get() = null
+    override var hasMore: Boolean
+        get() = false
+        set(value) {}
+    override var hasProgress: Boolean
+        get() = false
+        set(value) {}
+
+    override fun getReactions(): List<Reaction>? = null
+
+    override fun withReactions(reactions: List<Reaction>): FeedItem = this
+}
