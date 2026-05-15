@@ -1,0 +1,86 @@
+package com.hiaashuu.appteka.screen.users.adapter.subscriber
+
+import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
+import android.widget.TextView
+import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
+import com.hiaashuu.appteka.util.adapter.ItemView
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.dto.BadgeMark
+import com.hiaashuu.appteka.dto.UserIcon
+import com.hiaashuu.appteka.util.bind
+import com.hiaashuu.appteka.view.UserIconView
+import com.hiaashuu.appteka.view.UserIconViewImpl
+
+interface SubscriberItemView : ItemView {
+
+    fun setUserIcon(userIcon: UserIcon)
+
+    fun setUserBadge(badge: BadgeMark?)
+
+    fun setUserName(name: String)
+
+    fun setSubscribedDate(formatSubscribedTime: String)
+
+    fun showProgress()
+
+    fun hideProgress()
+
+    fun setOnClickListener(listener: (() -> Unit)?)
+
+    fun setClickable(clickable: Boolean)
+
+}
+
+class SubscriberItemViewHolder(view: View) : BaseItemViewHolder(view), SubscriberItemView {
+
+    private val context = view.context
+    private val userIcon: UserIconView = UserIconViewImpl(view.findViewById(R.id.member_icon))
+    private val userName: TextView = view.findViewById(R.id.user_name)
+    private val dateView: TextView = view.findViewById(R.id.date_view)
+    private val progress: View = view.findViewById(R.id.item_progress)
+
+    private var clickListener: (() -> Unit)? = null
+
+    init {
+        view.setOnClickListener { clickListener?.invoke() }
+    }
+
+    override fun setUserIcon(userIcon: UserIcon) {
+        this.userIcon.bind(userIcon)
+    }
+
+    override fun setUserBadge(badge: BadgeMark?) {
+        this.userIcon.bindBadge(badge)
+    }
+
+    override fun setUserName(name: String) {
+        userName.bind(name)
+    }
+
+    override fun setSubscribedDate(value: String) {
+        dateView.bind(value)
+    }
+
+    override fun showProgress() {
+        progress.visibility = VISIBLE
+    }
+
+    override fun hideProgress() {
+        progress.visibility = GONE
+    }
+
+    override fun setOnClickListener(listener: (() -> Unit)?) {
+        this.clickListener = listener
+    }
+
+    override fun setClickable(clickable: Boolean) {
+        itemView.isClickable = clickable
+    }
+
+    override fun onUnbind() {
+        this.clickListener = null
+    }
+
+}
