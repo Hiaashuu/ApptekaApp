@@ -1,0 +1,99 @@
+package com.hiaashuu.appteka.screen.about
+
+import android.os.Bundle
+import com.hiaashuu.appteka.core.UserAgentProvider
+import com.hiaashuu.appteka.util.SchedulersFactory
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+
+interface AboutPresenter {
+
+    fun attachView(view: AboutView)
+
+    fun detachView()
+
+    fun attachRouter(router: AboutRouter)
+
+    fun detachRouter()
+
+    fun saveState(): Bundle
+
+    fun onBackPressed()
+
+    interface AboutRouter {
+
+        fun openFeedbackEmail(addr: String, subject: String, text: String)
+
+        fun openSourceCodeLink()
+
+        fun openTelegramGroupLink()
+
+        fun openLegalInfoLink()
+
+        fun openContributorLink(url: String)
+
+        fun leaveScreen()
+    }
+
+}
+
+class AboutPresenterImpl(
+    private val resourceProvider: AboutResourceProvider,
+    private val userAgentProvider: UserAgentProvider,
+    private val schedulers: SchedulersFactory,
+    state: Bundle?
+) : AboutPresenter {
+
+    private var view: AboutView? = null
+    private var router: AboutPresenter.AboutRouter? = null
+
+    private val subscriptions = CompositeDisposable()
+
+    override fun attachView(view: AboutView) {
+        this.view = view
+
+        bindData()
+
+        subscriptions += view.navigationClicks().subscribe { onBackPressed() }
+        subscriptions += view.feedbackEmailClicks().subscribe {
+            router?.openFeedbackEmail(
+                addr = "support@appteka.store",
+                subject = userAgentProvider.getUserAgent(),
+                text = ""
+            )
+        }
+        subscriptions += view.sourceCodeClicks().subscribe { router?.openSourceCodeLink() }
+        subscriptions += view.telegramGroupClicks().subscribe { router?.openTelegramGroupLink() }
+        subscriptions += view.legalInfoClicks().subscribe { router?.openLegalInfoLink() }
+        subscriptions += view.contributorsClicks().subscribe {
+            view.showContributorsDialog(resourceProvider.getContributors())
+        }
+        subscriptions += view.contributorClicks().subscribe { contributor ->
+            router?.openContributorLink(contributor.url)
+        }
+    }
+
+    private fun bindData() {
+        view?.setVersion(resourceProvider.getAppVersion())
+    }
+
+    override fun detachView() {
+        subscriptions.clear()
+        this.view = null
+    }
+
+    override fun attachRouter(router: AboutPresenter.AboutRouter) {
+        this.router = router
+    }
+
+    override fun detachRouter() {
+        this.router = null
+    }
+
+    override fun saveState(): Bundle = Bundle().apply {}
+
+    override fun onBackPressed() {
+        router?.leaveScreen()
+    }
+
+}
