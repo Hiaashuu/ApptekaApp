@@ -1,0 +1,54 @@
+package com.hiaashuu.appteka.screen.upload.adapter.whats_new
+
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.widget.EditText
+import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
+import com.hiaashuu.appteka.util.adapter.ItemView
+import com.hiaashuu.appteka.R
+
+interface WhatsNewItemView : ItemView {
+
+    fun setText(text: String)
+
+    fun setOnTextChangedListener(listener: ((String) -> Unit)?)
+
+}
+
+@Suppress("DEPRECATION")
+class WhatsNewItemViewHolder(view: View) : BaseItemViewHolder(view), WhatsNewItemView {
+
+    private val whatsNewEdit: EditText = view.findViewById(R.id.whats_new)
+
+    private var textChangedListener: ((String) -> Unit)? = null
+
+    init {
+        whatsNewEdit.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                textChangedListener?.invoke(s.toString())
+            }
+        })
+    }
+
+    override fun setText(text: String) {
+        if (whatsNewEdit.text.toString() != text) {
+            whatsNewEdit.setText(text)
+        }
+    }
+
+    override fun setOnTextChangedListener(listener: ((String) -> Unit)?) {
+        this.textChangedListener = listener
+    }
+
+    override fun onUnbind() {
+        this.textChangedListener = null
+    }
+
+}
