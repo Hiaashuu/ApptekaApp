@@ -1,0 +1,179 @@
+package com.hiaashuu.appteka.screen.feed
+
+import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.screen.auth.request_code.createRequestCodeActivityIntent
+import com.hiaashuu.appteka.screen.details.createDetailsActivityIntent
+import com.hiaashuu.appteka.screen.feed.di.FeedModule
+import com.hiaashuu.appteka.screen.gallery.GalleryItem
+import com.hiaashuu.appteka.screen.gallery.createGalleryActivityIntent
+import com.hiaashuu.appteka.screen.home.HomeFragment
+import com.hiaashuu.appteka.screen.profile.createProfileActivityIntent
+import com.hiaashuu.appteka.util.Analytics
+import com.hiaashuu.appteka.util.ZipParcelable
+import com.hiaashuu.appteka.util.getParcelableCompat
+import javax.inject.Inject
+
+class FeedFragment : Fragment(), FeedPresenter.FeedRouter, HomeFragment {
+
+    @Inject
+    lateinit var presenter: FeedPresenter
+
+    @Inject
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    @Inject
+    lateinit var preferences: FeedPreferencesProvider
+
+    @Inject
+    lateinit var analytics: Analytics
+
+    private val authLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == AppCompatActivity.RESULT_OK) {
+                presenter.invalidate()
+            }
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val userId = arguments?.getInt(ARG_USER_ID)
+        val postId = arguments?.getInt(ARG_POST_ID)
+        val withToolbar = arguments?.getBoolean(ARG_WITH_TOOLBAR, false)
+
+        val presenterState = savedInstanceState
+            ?.getParcelableCompat(KEY_PRESENTER_STATE, ZipParcelable::class.java)
+            ?.restore<Bundle>()
+        requireContext().appComponent
+            .feedComponent(
+                FeedModule(
+                    requireContext(),
+                    userId,
+                    postId,
+                    withToolbar,
+                    presenterState
+                )
+            )
+            .inject(fragment = this)
+
+        super.onCreate(savedInstanceState)
+
+        if (savedInstanceState == null) {
+            analytics.trackEvent("open-feed-fragment")
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.feed_fragment, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val feedView = FeedViewImpl(view, adapter, preferences)
+
+        presenter.attachView(feedView)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        presenter.attachRouter(this)
+    }
+
+    override fun onStop() {
+        presenter.detachRouter()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        presenter.detachView()
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(KEY_PRESENTER_STATE, ZipParcelable(presenter.saveState()))
+    }
+
+    override fun openProfileScreen(userId: Int) {
+        val context = context ?: return
+        val intent = createProfileActivityIntent(context, userId)
+        startActivity(intent)
+    }
+
+    override fun openDetailsScreen(appId: String, label: String?, isFinish: Boolean) {
+        val context = context ?: return
+        val intent = createDetailsActivityIntent(
+            context = context,
+            appId = appId,
+            label = label.orEmpty(),
+            finishOnly = true
+        )
+        if (isFinish) {
+            intent.flags = FLAG_ACTIVITY_CLEAR_TOP
+            leaveScreen()
+        }
+        startActivity(intent)
+    }
+
+    override fun openGallery(items: List<GalleryItem>, current: Int) {
+        val context = context ?: return
+        val intent = createGalleryActivityIntent(context, items, current)
+        startActivity(intent)
+    }
+
+    override fun openLoginScreen() {
+        val context = context ?: return
+        val intent = createRequestCodeActivityIntent(context)
+        authLauncher.launch(intent)
+    }
+
+    override fun leaveScreen() {
+        activity?.onBackPressedDispatcher?.onBackPressed()
+    }
+
+    override fun handleEvent(data: Intent?) {
+        val postId = data?.getIntExtra(EXTRA_POST_ID, 0)
+        presenter.invalidate(postId?.takeIf { it != 0 })
+    }
+
+    override fun onReselect() {
+        presenter.scrollToBottom()
+    }
+
+}
+
+fun createFeedFragment(): FeedFragment = FeedFragment()
+
+fun createFeedFragment(userId: Int, postId: Int = 0, withToolbar: Boolean): FeedFragment =
+    FeedFragment().apply {
+        arguments = Bundle().apply {
+            putInt(ARG_USER_ID, userId)
+            putInt(ARG_POST_ID, postId)
+            putBoolean(ARG_WITH_TOOLBAR, withToolbar)
+        }
+    }
+
+private const val KEY_PRESENTER_STATE = "presenter_state"
+private const val ARG_USER_ID = "user_id"
+private const val ARG_POST_ID = "post_id"
+private const val ARG_WITH_TOOLBAR = "with_toolbar"
+
+const val EXTRA_POST_ID = "post_id"
