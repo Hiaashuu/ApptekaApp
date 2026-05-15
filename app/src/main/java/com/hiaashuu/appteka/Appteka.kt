@@ -1,0 +1,107 @@
+package com.hiaashuu.appteka
+
+import android.app.Application
+import android.content.Context
+import android.util.Log
+import com.hiaashuu.appteka.analytics.AnalyticsActivityCallback
+import com.hiaashuu.appteka.di.AppComponent
+import com.hiaashuu.appteka.di.AppModule
+import com.hiaashuu.appteka.di.DaggerAppComponent
+import com.hiaashuu.appteka.util.ApkIconLoader
+import com.hiaashuu.appteka.util.AppIconLoader
+import com.hiaashuu.appteka.util.EdgeToEdgeActivityCallback
+import com.hiaashuu.appteka.util.SvgDecoder
+import com.hiaashuu.appteka.util.ThemeManager
+import com.tomclaw.cache.DiskLruCache
+import com.tomclaw.imageloader.SimpleImageLoader.initImageLoader
+import com.tomclaw.imageloader.core.DiskCacheImpl
+import com.tomclaw.imageloader.core.FileProviderImpl
+import com.tomclaw.imageloader.core.MainExecutorImpl
+import com.tomclaw.imageloader.core.MemoryCacheImpl
+import com.tomclaw.imageloader.util.BitmapDecoder
+import com.tomclaw.imageloader.util.loader.ContentLoader
+import com.tomclaw.imageloader.util.loader.FileLoader
+import com.tomclaw.imageloader.util.loader.UrlLoader
+import io.reactivex.rxjava3.exceptions.UndeliverableException
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
+import retrofit2.HttpException
+import java.io.IOException
+import java.util.concurrent.Executors
+
+class Appteka : Application() {
+
+    lateinit var component: AppComponent
+        private set
+
+    lateinit var themeManager: ThemeManager
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        initRxErrorHandler()
+        themeManager = ThemeManager(this)
+        themeManager.init()
+
+        registerActivityLifecycleCallbacks(EdgeToEdgeActivityCallback())
+
+        component = DaggerAppComponent.builder()
+            .appModule(AppModule(this))
+            .build()
+
+        initSimpleImageLoader()
+        initAnalytics()
+    }
+
+    private fun initRxErrorHandler() {
+        RxJavaPlugins.setErrorHandler { e ->
+            val error = when (e) {
+                is UndeliverableException -> e.cause
+                else -> e
+            }
+            if (error is HttpException || error is IOException || error is InterruptedException) {
+                Log.w(TAG, "Undeliverable exception: ${error.message}")
+                return@setErrorHandler
+            }
+            Thread.currentThread().uncaughtExceptionHandler
+                ?.uncaughtException(Thread.currentThread(), error ?: e)
+        }
+    }
+
+    private fun initSimpleImageLoader() {
+        try {
+            initImageLoader(
+                decoders = listOf(SvgDecoder(), BitmapDecoder()),
+                fileProvider = FileProviderImpl(
+                    cacheDir,
+                    DiskCacheImpl(DiskLruCache.create(cacheDir, DISK_CACHE_SIZE)),
+                    UrlLoader(),
+                    FileLoader(assets),
+                    ContentLoader(contentResolver),
+                    AppIconLoader(this, packageManager),
+                    ApkIconLoader(this, packageManager)
+                ),
+                memoryCache = MemoryCacheImpl(),
+                mainExecutor = MainExecutorImpl(),
+                backgroundExecutor = Executors.newFixedThreadPool(IMAGE_LOADER_THREADS)
+            )
+        } catch (ignored: Throwable) {
+        }
+    }
+
+    private fun initAnalytics() {
+        component.migrationManager()
+        component.analytics().register()
+        registerActivityLifecycleCallbacks(
+            AnalyticsActivityCallback(component.bananalytics())
+        )
+    }
+
+    companion object {
+        private const val TAG = "Appteka"
+        private const val DISK_CACHE_SIZE = 15L * 1024 * 1024
+        private const val IMAGE_LOADER_THREADS = 5
+    }
+}
+
+val Context.appComponent: AppComponent
+    get() = (applicationContext as Appteka).component
