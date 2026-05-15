@@ -1,0 +1,533 @@
+package com.hiaashuu.appteka.screen.details
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.content.Intent.ACTION_VIEW
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleRecyclerAdapter
+import com.hiaashuu.appteka.appComponent
+import com.hiaashuu.appteka.R
+import com.hiaashuu.appteka.download.ApkStorage
+import com.hiaashuu.appteka.download.createDownloadIntent
+import com.hiaashuu.appteka.screen.auth.request_code.createRequestCodeActivityIntent
+import com.hiaashuu.appteka.screen.chat.createChatActivityIntent
+import com.hiaashuu.appteka.screen.details.di.DETAILS_ADAPTER_PRESENTER
+import com.hiaashuu.appteka.screen.details.di.DetailsModule
+import com.hiaashuu.appteka.screen.gallery.GalleryItem
+import com.hiaashuu.appteka.screen.gallery.createGalleryActivityIntent
+import com.hiaashuu.appteka.screen.home.createHomeActivityIntent
+import com.hiaashuu.appteka.screen.permissions.createPermissionsActivityIntent
+import com.hiaashuu.appteka.screen.profile.createProfileActivityIntent
+import com.hiaashuu.appteka.screen.rate.createRateActivityIntent
+import com.hiaashuu.appteka.screen.ratings.createRatingsActivityIntent
+import com.hiaashuu.appteka.screen.unlink.createUnlinkActivityIntent
+import com.hiaashuu.appteka.screen.unpublish.createUnpublishActivityIntent
+import com.hiaashuu.appteka.screen.upload.createUploadActivityIntent
+import com.hiaashuu.appteka.upload.UploadPackage
+import com.hiaashuu.appteka.user.api.UserBrief
+import com.hiaashuu.appteka.util.Analytics
+import javax.inject.Inject
+import javax.inject.Named
+
+class DetailsActivity : AppCompatActivity(), DetailsPresenter.DetailsRouter {
+
+    @Inject
+    lateinit var presenter: DetailsPresenter
+
+    @Inject
+    @Named(DETAILS_ADAPTER_PRESENTER)
+    lateinit var adapterPresenter: AdapterPresenter
+
+    @Inject
+    lateinit var binder: ItemBinder
+
+    @Inject
+    lateinit var preferences: DetailsPreferencesProvider
+
+    @Inject
+    lateinit var analytics: Analytics
+
+    @Inject
+    lateinit var apkStorage: ApkStorage
+
+    private val deepLinkParser: DetailsDeepLinkParser by lazy {
+        appComponent.detailsDeepLinkParser()
+    }
+
+    private val invalidateDetailsResultLauncher =
+        registerForActivityResult(StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                presenter.invalidateDetails()
+            }
+        }
+
+    private val backPressedResultLauncher =
+        registerForActivityResult(StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                presenter.onBackPressed()
+            }
+        }
+
+    private var pendingDownload: DownloadParams? = null
+    private var pendingStoragePermissionCallback: (() -> Unit)? = null
+    private var pendingDeletePackageCallback: ((Boolean) -> Unit)? = null
+    private var pendingDeletePackageName: String? = null
+
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pendingStoragePermissionCallback?.invoke()
+        } else {
+            presenter.showSnackbar(getString(R.string.write_permission_download))
+        }
+        pendingStoragePermissionCallback = null
+    }
+
+    private val deletePackagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pendingDeletePackageName?.let { onRemoveAppPermitted(it) }
+        } else {
+            presenter.showSnackbar(getString(R.string.request_delete_packages))
+        }
+        pendingDeletePackageName = null
+    }
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+
+            Handler(Looper.getMainLooper()).postDelayed({
+                pendingDownload?.let { params ->
+                    doStartDownload(params.label, params.version, params.icon, params.appId, params.url)
+                }
+                pendingDownload = null
+            }, PERMISSION_APPLY_DELAY)
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        var appId: String? = null
+        var packageName: String? = null
+        var moderation = false
+        var finishOnly = false
+        var openReview = false
+
+        val data = intent.data
+        if (data != null) {
+            when (val deepLink = deepLinkParser.parse(data)) {
+                is DetailsDeepLink.ByAppId -> {
+                    appId = deepLink.appId
+                    openReview = deepLink.openReview && savedInstanceState == null
+                }
+                is DetailsDeepLink.ByPackageName -> packageName = deepLink.packageName
+                is DetailsDeepLink.Invalid -> return navigateToStore()
+            }
+        } else {
+            appId = intent.getStringExtra(EXTRA_APP_ID)
+            packageName = intent.getStringExtra(EXTRA_PACKAGE)
+            moderation = intent.getBooleanExtra(EXTRA_MODERATION, false)
+            finishOnly = intent.getBooleanExtra(EXTRA_FINISH_ONLY, false)
+        }
+
+        if (appId == null && packageName == null) {
+            return navigateToStore()
+        }
+
+        val presenterState = savedInstanceState?.getBundle(KEY_PRESENTER_STATE)
+        appComponent
+            .detailsComponent(
+                DetailsModule(
+                    appId,
+                    packageName,
+                    moderation,
+                    finishOnly,
+                    openReview,
+                    this,
+                    presenterState
+                )
+            )
+            .inject(activity = this)
+        setContentView(R.layout.details_activity)
+
+        val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
+        val view = DetailsViewImpl(this, window.decorView, preferences, adapter)
+
+        presenter.attachView(view)
+
+        if (savedInstanceState == null) {
+            analytics.trackEvent("open-details-screen")
+        }
+
+        if (!finishOnly) {
+            onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    presenter.onBackPressed()
+                }
+            })
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onNewIntent(@SuppressLint("UnsafeIntentLaunch") intent: Intent) {
+        super.onNewIntent(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            overridePendingTransition(0, 0)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        finish()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+        } else {
+            overridePendingTransition(0, 0)
+        }
+        startActivity(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (::presenter.isInitialized) {
+            presenter.attachRouter(this)
+        }
+    }
+
+    override fun onStop() {
+        if (::presenter.isInitialized) {
+            presenter.detachRouter()
+        }
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        if (::presenter.isInitialized) {
+            presenter.detachView()
+        }
+        super.onDestroy()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::presenter.isInitialized) {
+            outState.putBundle(KEY_PRESENTER_STATE, presenter.saveState())
+        }
+    }
+
+    override fun leaveScreen() {
+        finish()
+    }
+
+    override fun leaveModeration() {
+        setResult(RESULT_OK)
+        finish()
+    }
+
+    override fun requestStoragePermissions(callback: () -> Unit) {
+        if (!apkStorage.isPermissionRequired()) {
+            callback()
+            return
+        }
+        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                callback()
+            }
+
+            shouldShowRequestPermissionRationale(permission) -> {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.app_name)
+                    .setMessage(R.string.write_permission_download)
+                    .setPositiveButton(R.string.ok) { _, _ ->
+                        pendingStoragePermissionCallback = callback
+                        storagePermissionLauncher.launch(permission)
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            }
+
+            else -> {
+                pendingStoragePermissionCallback = callback
+                storagePermissionLauncher.launch(permission)
+            }
+        }
+    }
+
+    override fun openPermissionsScreen(permissions: List<String>) {
+        val intent = createPermissionsActivityIntent(context = this, permissions)
+        startActivity(intent)
+    }
+
+    override fun openRatingsScreen(appId: String) {
+        val intent = createRatingsActivityIntent(context = this, appId)
+        startActivity(intent)
+    }
+
+    override fun openProfile(userId: Int) {
+        val intent = createProfileActivityIntent(context = this, userId)
+        startActivity(intent)
+    }
+
+    override fun launchApp(packageName: String) {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        if (intent == null) {
+            presenter.showSnackbar(resources.getString(R.string.non_launchable_package))
+        } else {
+            startActivity(intent)
+        }
+        analytics.trackEvent("details-launch-app")
+    }
+
+    override fun installApp(uri: Uri) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, APK_MIME_TYPE)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+        startActivity(intent)
+        analytics.trackEvent("details-install-app")
+    }
+
+    override fun removeApp(packageName: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val permission = Manifest.permission.REQUEST_DELETE_PACKAGES
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    permission
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    onRemoveAppPermitted(packageName)
+                }
+
+                shouldShowRequestPermissionRationale(permission) -> {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.app_name)
+                        .setMessage(R.string.request_delete_packages)
+                        .setPositiveButton(R.string.ok) { _, _ ->
+                            pendingDeletePackageName = packageName
+                            deletePackagePermissionLauncher.launch(permission)
+                        }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                }
+
+                else -> {
+                    pendingDeletePackageName = packageName
+                    deletePackagePermissionLauncher.launch(permission)
+                }
+            }
+        } else {
+            onRemoveAppPermitted(packageName)
+        }
+    }
+
+    override fun openRateScreen(
+        appId: String,
+        userBrief: UserBrief,
+        rating: Float,
+        review: String?,
+        label: String?,
+        icon: String?
+    ) {
+        val intent = createRateActivityIntent(
+            context = this,
+            appId = appId,
+            userBrief = userBrief,
+            rating = rating,
+            review = review,
+            label = label,
+            icon = icon,
+        )
+        invalidateDetailsResultLauncher.launch(intent)
+    }
+
+    override fun openEditMetaScreen(
+        appId: String,
+        label: String?,
+        icon: String?,
+        packageName: String,
+        sha1: String,
+        size: Long,
+    ) {
+        val pkg = UploadPackage(
+            uniqueId = appId,
+            sha1 = sha1,
+            packageName = packageName,
+            size = size,
+        )
+        val intent = createUploadActivityIntent(this, pkg, null, null)
+        invalidateDetailsResultLauncher.launch(intent)
+    }
+
+    override fun openUnpublishScreen(appId: String, label: String?) {
+        val intent = createUnpublishActivityIntent(context = this, appId, label)
+        invalidateDetailsResultLauncher.launch(intent)
+    }
+
+    override fun openUnlinkScreen(appId: String, label: String?) {
+        val intent = createUnlinkActivityIntent(this, appId, label)
+        backPressedResultLauncher.launch(intent)
+    }
+
+    override fun openAbuseScreen(url: String, label: String?, text: String) {
+        val addr = "support@appteka.store"
+        val subject = "Abuse Report on $label"
+
+        val uri = Uri.fromParts("mailto", addr, null)
+        val intent = Intent(Intent.ACTION_SENDTO, uri)
+            .putExtra(Intent.EXTRA_SUBJECT, subject)
+            .putExtra(Intent.EXTRA_TEXT, text)
+        try {
+            startActivity(Intent.createChooser(intent, getString(R.string.send_email)))
+        } catch (ex: Throwable) {
+            Toast.makeText(this, getString(R.string.no_email_clients), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun openDetailsScreen(appId: String, label: String?) {
+        val intent = createDetailsActivityIntent(this, appId, label = label.orEmpty())
+        startActivity(intent)
+        finish()
+    }
+
+    override fun openChatScreen(topicId: Int, label: String?) {
+        val intent = createChatActivityIntent(this, topicId, label)
+        startActivity(intent)
+        analytics.trackEvent("details-open-chat")
+    }
+
+    override fun openStoreScreen() {
+        navigateToStore()
+    }
+
+    private fun navigateToStore() {
+        val intent = createHomeActivityIntent(context = this)
+            .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun openGooglePlay(packageName: String) {
+        try {
+            val intent = Intent(ACTION_VIEW, "market://details?id=$packageName".toUri())
+            startActivity(intent)
+        } catch (ex: ActivityNotFoundException) {
+            val intent = Intent(
+                ACTION_VIEW,
+                "https://play.google.com/store/apps/details?id=$packageName".toUri()
+            )
+            startActivity(intent)
+        }
+        analytics.trackEvent("details-open-google-play")
+    }
+
+    override fun startDownload(
+        label: String,
+        version: String,
+        icon: String?,
+        appId: String,
+        url: String
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                pendingDownload = DownloadParams(label, version, icon, appId, url)
+                notificationPermissionLauncher.launch(permission)
+                return
+            }
+        }
+        doStartDownload(label, version, icon, appId, url)
+    }
+
+    private fun doStartDownload(
+        label: String,
+        version: String,
+        icon: String?,
+        appId: String,
+        url: String
+    ) {
+        val intent = createDownloadIntent(context = this, label, version, icon, appId, url)
+        ContextCompat.startForegroundService(this, intent)
+        analytics.trackEvent("details-download-app")
+    }
+
+    private data class DownloadParams(
+        val label: String,
+        val version: String,
+        val icon: String?,
+        val appId: String,
+        val url: String
+    )
+
+    override fun openShare(title: String, text: String) {
+        val intent = Intent()
+            .setAction(Intent.ACTION_SEND)
+            .putExtra(Intent.EXTRA_TEXT, text)
+            .setType("text/plain")
+        startActivity(Intent.createChooser(intent, title))
+        analytics.trackEvent("details-share")
+    }
+
+    override fun openLoginScreen() {
+        val intent = createRequestCodeActivityIntent(context = this)
+        startActivity(intent)
+    }
+
+    override fun openGallery(items: List<GalleryItem>, current: Int) {
+        val intent = createGalleryActivityIntent(context = this, items, current)
+        startActivity(intent)
+    }
+
+    private fun onRemoveAppPermitted(packageName: String) {
+        val packageUri = "package:$packageName".toUri()
+        val uninstallIntent = Intent(Intent.ACTION_DELETE, packageUri)
+        startActivity(uninstallIntent)
+        analytics.trackEvent("details-delete-app")
+    }
+
+}
+
+fun createDetailsActivityIntent(
+    context: Context,
+    appId: String? = null,
+    packageName: String? = null,
+    label: String,
+    moderation: Boolean = false,
+    finishOnly: Boolean = false,
+): Intent = Intent(context, DetailsActivity::class.java)
+    .putExtra(EXTRA_APP_ID, appId)
+    .putExtra(EXTRA_PACKAGE, packageName)
+    .putExtra(EXTRA_LABEL, label)
+    .putExtra(EXTRA_MODERATION, moderation)
+    .putExtra(EXTRA_FINISH_ONLY, finishOnly)
+
+private const val EXTRA_APP_ID = "app_id"
+private const val EXTRA_PACKAGE = "package_name"
+private const val EXTRA_LABEL = "label"
+private const val EXTRA_MODERATION = "moderation"
+private const val EXTRA_FINISH_ONLY = "finishOnly"
+private const val KEY_PRESENTER_STATE = "presenter_state"
+private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
+private const val PERMISSION_APPLY_DELAY = 100L
