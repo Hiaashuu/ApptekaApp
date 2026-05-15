@@ -1,0 +1,377 @@
+package com.hiaashuu.appteka.screen.upload.di
+
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Bundle
+import com.hiaashuu.appteka.util.adapter.ItemBinder
+import com.hiaashuu.appteka.util.adapter.AdapterPresenter
+import com.hiaashuu.appteka.util.adapter.SimpleAdapterPresenter
+import com.hiaashuu.appteka.util.adapter.ItemBlueprint
+import com.hiaashuu.appteka.categories.CategoriesInteractor
+import com.hiaashuu.appteka.categories.CategoryConverter
+import com.hiaashuu.appteka.categories.CategoryConverterImpl
+import com.hiaashuu.appteka.core.PackageInfoProvider
+import com.hiaashuu.appteka.core.StoreApi
+import com.hiaashuu.appteka.core.StreamsProvider
+import com.hiaashuu.appteka.screen.upload.DescriptionValidator
+import com.hiaashuu.appteka.screen.upload.DescriptionValidatorImpl
+import com.hiaashuu.appteka.screen.upload.UploadConverter
+import com.hiaashuu.appteka.screen.upload.UploadConverterImpl
+import com.hiaashuu.appteka.screen.upload.UploadInteractor
+import com.hiaashuu.appteka.screen.upload.UploadInteractorImpl
+import com.hiaashuu.appteka.screen.upload.UploadPreferencesProvider
+import com.hiaashuu.appteka.screen.upload.UploadPreferencesProviderImpl
+import com.hiaashuu.appteka.screen.upload.UploadPresenter
+import com.hiaashuu.appteka.screen.upload.UploadPresenterImpl
+import com.hiaashuu.appteka.screen.upload.UploadResourceProvider
+import com.hiaashuu.appteka.screen.upload.UploadResourceProviderImpl
+import com.hiaashuu.appteka.screen.upload.adapter.category.SelectCategoryItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.category.SelectCategoryItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.description.DescriptionItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.description.DescriptionItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.exclusive.ExclusiveItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.exclusive.ExclusiveItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.notice.NoticeItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.notice.NoticeItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.open_source.OpenSourceItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.open_source.OpenSourceItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.other_versions.OtherVersionsItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.other_versions.OtherVersionsItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.prefill_version.PrefillVersionItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.prefill_version.PrefillVersionItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.screen_append.ScreenAppendItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.screen_append.ScreenAppendItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.screen_image.ScreenImageItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.screen_image.ScreenImageItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.screenshots.ScreenshotsItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.screenshots.ScreenshotsItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.select_app.SelectAppItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.select_app.SelectAppItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.selected_app.SelectedAppItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.selected_app.SelectedAppItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.selected_app.SelectedAppResourceProvider
+import com.hiaashuu.appteka.screen.upload.adapter.selected_app.SelectedAppResourceProviderImpl
+import com.hiaashuu.appteka.screen.upload.adapter.submit.SubmitItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.submit.SubmitItemPresenter
+import com.hiaashuu.appteka.screen.upload.adapter.whats_new.WhatsNewItemBlueprint
+import com.hiaashuu.appteka.screen.upload.adapter.whats_new.WhatsNewItemPresenter
+import com.hiaashuu.appteka.upload.UploadApk
+import com.hiaashuu.appteka.upload.UploadInfo
+import com.hiaashuu.appteka.upload.UploadManager
+import com.hiaashuu.appteka.upload.UploadPackage
+import com.hiaashuu.appteka.util.PerActivity
+import com.hiaashuu.appteka.util.SchedulersFactory
+import com.tomclaw.bananalytics.Bananalytics
+import dagger.Lazy
+import dagger.Module
+import dagger.Provides
+import dagger.multibindings.IntoSet
+import java.util.Locale
+import javax.inject.Named
+
+@Module
+class UploadModule(
+    private val context: Context,
+    private val pkg: UploadPackage?,
+    private val apk: UploadApk?,
+    private val meta: UploadInfo?,
+    private val state: Bundle?
+) {
+
+    @Provides
+    @PerActivity
+    internal fun providePresenter(
+        bananalytics: Bananalytics,
+        interactor: UploadInteractor,
+        categoriesInteractor: CategoriesInteractor,
+        categoryConverter: CategoryConverter,
+        uploadConverter: UploadConverter,
+        descriptionValidator: DescriptionValidator,
+        @Named(UPLOAD_ADAPTER_PRESENTER) adapterPresenter: Lazy<AdapterPresenter>,
+        uploadManager: UploadManager,
+        packageInfoProvider: PackageInfoProvider,
+        preferences: UploadPreferencesProvider,
+        capabilitiesProvider: com.hiaashuu.appteka.core.permissions.UserCapabilitiesProvider,
+        schedulers: SchedulersFactory
+    ): UploadPresenter = UploadPresenterImpl(
+        pkg,
+        apk,
+        meta,
+        bananalytics,
+        interactor,
+        categoriesInteractor,
+        categoryConverter,
+        uploadConverter,
+        descriptionValidator,
+        adapterPresenter,
+        uploadManager,
+        packageInfoProvider,
+        preferences,
+        capabilitiesProvider,
+        schedulers,
+        state
+    )
+
+    @Provides
+    @PerActivity
+    internal fun provideInteractor(
+        api: StoreApi,
+        locale: Locale,
+        streamsProvider: StreamsProvider,
+        schedulers: SchedulersFactory
+    ): UploadInteractor = UploadInteractorImpl(api, locale, context, streamsProvider, schedulers)
+
+    @Provides
+    @PerActivity
+    internal fun provideCategoryConverter(locale: Locale): CategoryConverter =
+        CategoryConverterImpl(locale)
+
+    @Provides
+    @PerActivity
+    internal fun provideUploadPreferencesProvider(): UploadPreferencesProvider {
+        return UploadPreferencesProviderImpl(context)
+    }
+
+    @Provides
+    @PerActivity
+    internal fun provideUploadResourceProvider(
+        locale: Locale
+    ): UploadResourceProvider {
+        return UploadResourceProviderImpl(context.resources, locale)
+    }
+
+    @Provides
+    @PerActivity
+    internal fun provideDescriptionValidator(): DescriptionValidator {
+        return DescriptionValidatorImpl()
+    }
+
+    @Provides
+    @PerActivity
+    internal fun provideUploadConverterProvider(
+        resourceProvider: UploadResourceProvider,
+        descriptionValidator: DescriptionValidator
+    ): UploadConverter {
+        return UploadConverterImpl(resourceProvider, descriptionValidator)
+    }
+
+    @Provides
+    @PerActivity
+    @Named(UPLOAD_ADAPTER_PRESENTER)
+    internal fun provideUploadAdapterPresenter(binder: ItemBinder): AdapterPresenter {
+        return SimpleAdapterPresenter(binder)
+    }
+
+    @Provides
+    @PerActivity
+    @Named(SCREENSHOT_ADAPTER_PRESENTER)
+    internal fun provideScreenshotAdapterPresenter(binder: ItemBinder): AdapterPresenter {
+        return SimpleAdapterPresenter(binder)
+    }
+
+    @Provides
+    @PerActivity
+    internal fun provideItemBinder(
+        blueprintSet: Set<@JvmSuppressWildcards ItemBlueprint<*, *>>
+    ): ItemBinder {
+        return ItemBinder.Builder().apply {
+            blueprintSet.forEach { registerItem(it) }
+        }.build()
+    }
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideSelectAppItemBlueprint(
+        presenter: SelectAppItemPresenter
+    ): ItemBlueprint<*, *> = SelectAppItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideSelectAppItemPresenter(
+        presenter: UploadPresenter
+    ) = SelectAppItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideSelectedAppItemBlueprint(
+        presenter: SelectedAppItemPresenter
+    ): ItemBlueprint<*, *> = SelectedAppItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideSelectedAppItemPresenter(
+        presenter: UploadPresenter,
+        resourceProvider: SelectedAppResourceProvider,
+        packageManager: PackageManager,
+    ) = SelectedAppItemPresenter(presenter, resourceProvider, packageManager)
+
+    @Provides
+    @PerActivity
+    internal fun provideSelectedAppResourceProvider(): SelectedAppResourceProvider =
+        SelectedAppResourceProviderImpl(context.resources)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideNoticeItemBlueprint(
+        presenter: NoticeItemPresenter
+    ): ItemBlueprint<*, *> = NoticeItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideNoticeItemPresenter(
+        presenter: UploadPresenter
+    ) = NoticeItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideSelectCategoryItemBlueprint(
+        presenter: SelectCategoryItemPresenter
+    ): ItemBlueprint<*, *> = SelectCategoryItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideSelectCategoryItemPresenter(
+        presenter: UploadPresenter
+    ) = SelectCategoryItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideWhatsNewItemBlueprint(
+        presenter: WhatsNewItemPresenter
+    ): ItemBlueprint<*, *> = WhatsNewItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideWhatsNewItemPresenter(
+        presenter: UploadPresenter
+    ) = WhatsNewItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideDescriptionItemBlueprint(
+        presenter: DescriptionItemPresenter
+    ): ItemBlueprint<*, *> = DescriptionItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideDescriptionItemPresenter(
+        presenter: UploadPresenter
+    ) = DescriptionItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideExclusiveItemBlueprint(
+        presenter: ExclusiveItemPresenter
+    ): ItemBlueprint<*, *> = ExclusiveItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideExclusiveItemPresenter(
+        presenter: UploadPresenter
+    ) = ExclusiveItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideOpenSourceItemBlueprint(
+        presenter: OpenSourceItemPresenter
+    ): ItemBlueprint<*, *> = OpenSourceItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideOpenSourceItemPresenter(
+        presenter: UploadPresenter
+    ) = OpenSourceItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideSubmitItemBlueprint(
+        presenter: SubmitItemPresenter
+    ): ItemBlueprint<*, *> = SubmitItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideSubmitItemPresenter(
+        presenter: UploadPresenter
+    ) = SubmitItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideOtherVersionsItemBlueprint(
+        presenter: OtherVersionsItemPresenter
+    ): ItemBlueprint<*, *> = OtherVersionsItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideOtherVersionsItemPresenter(
+        presenter: UploadPresenter
+    ) = OtherVersionsItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun providePrefillVersionItemBlueprint(
+        presenter: PrefillVersionItemPresenter
+    ): ItemBlueprint<*, *> = PrefillVersionItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun providePrefillVersionItemPresenter(
+        presenter: UploadPresenter
+    ) = PrefillVersionItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideScreenshotsItemBlueprint(
+        presenter: ScreenshotsItemPresenter,
+        @Named(SCREENSHOT_ADAPTER_PRESENTER) adapterPresenter: Lazy<AdapterPresenter>,
+        binder: Lazy<ItemBinder>,
+    ): ItemBlueprint<*, *> = ScreenshotsItemBlueprint(presenter, adapterPresenter, binder)
+
+    @Provides
+    @PerActivity
+    internal fun provideScreenshotsItemPresenter(
+        presenter: UploadPresenter,
+        @Named(SCREENSHOT_ADAPTER_PRESENTER) adapterPresenter: Lazy<AdapterPresenter>,
+    ) = ScreenshotsItemPresenter(presenter, adapterPresenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideScreenAppendItemBlueprint(
+        presenter: ScreenAppendItemPresenter
+    ): ItemBlueprint<*, *> = ScreenAppendItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideScreenAppendItemPresenter(
+        presenter: UploadPresenter
+    ) = ScreenAppendItemPresenter(presenter)
+
+    @Provides
+    @IntoSet
+    @PerActivity
+    internal fun provideScreenImageItemBlueprint(
+        presenter: ScreenImageItemPresenter
+    ): ItemBlueprint<*, *> = ScreenImageItemBlueprint(presenter)
+
+    @Provides
+    @PerActivity
+    internal fun provideScreenImageItemPresenter(
+        presenter: UploadPresenter
+    ) = ScreenImageItemPresenter(presenter)
+
+}
+
+const val UPLOAD_ADAPTER_PRESENTER = "UploadAdapterPresenter"
+const val SCREENSHOT_ADAPTER_PRESENTER = "ScreenshotAdapterPresenter"
