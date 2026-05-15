@@ -1,0 +1,32 @@
+*.class
+*.zip
+*.apk
+*.iml
+.DS_store
+
+# IDE folders #
+gen/
+bin/
+out/
+local.properties
+proguard_logs/
+projectFilesBackup/
+.idea/*
+!.idea/codeStyleSettings.xml
+!.idea/encodings.xml
+!.idea/inspectionProfiles/
+.kotlin/
+
+# Gradle files
+.gradle/
+*build/
+app/release/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Added by CodXFuse — Security
+*.jks
+*.keystore
+*.p12
+*.pfx
