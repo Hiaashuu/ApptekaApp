@@ -188,13 +188,6 @@ class DetailsConverterImpl(
                 rateCapability = details.capabilities?.get(CapabilityAction.APP_RATE),
             )
         }
-        if (details.info.fileStatus == STATUS_NORMAL || !details.versions.isNullOrEmpty()) {
-            items += DiscussItem(
-                id = id++,
-                msgCount = details.msgCount,
-            )
-        }
-
         if (!details.meta?.whatsNew.isNullOrBlank()) {
             val whatsNewText = when (translationState) {
                 TRANSLATION_TRANSLATED -> translationData?.whatsNew
@@ -231,6 +224,12 @@ class DetailsConverterImpl(
             items += PermissionsItem(
                 id = id++,
                 permissions = details.info.permissions,
+            )
+        }
+        if (details.info.fileStatus == STATUS_NORMAL || !details.versions.isNullOrEmpty()) {
+            items += DiscussItem(
+                id = id++,
+                msgCount = details.msgCount,
             )
         }
         if (
