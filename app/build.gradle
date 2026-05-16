@@ -132,8 +132,5 @@ dependencies {
     implementation project(':krop')
 
     // Debug & Test
-    debugImplementation 'com.github.chuckerteam.chucker:library:4.0.0'
-    releaseImplementation 'com.github.chuckerteam.chucker:library-no-op:4.0.0'
-
     testImplementation 'junit:junit:4.13.2'
 }
