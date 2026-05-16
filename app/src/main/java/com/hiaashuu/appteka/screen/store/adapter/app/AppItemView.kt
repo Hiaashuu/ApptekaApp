@@ -58,6 +58,7 @@ interface AppItemView : ItemView {
 class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
 
     private val context = view.context
+    private val card: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.app_card)
     private val icon: ImageView = view.findViewById(R.id.app_icon)
     private val title: TextView = view.findViewById(R.id.app_name)
     private val version: TextView = view.findViewById(R.id.app_version)
@@ -78,7 +79,7 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     private var clickListener: (() -> Unit)? = null
 
     init {
-        view.setOnClickListener { clickListener?.invoke() }
+        card.setOnClickListener { clickListener?.invoke() }
     }
 
     override fun setIcon(url: String?) {
