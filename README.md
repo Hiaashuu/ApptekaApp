@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/src/main/ic_launcher-web.png" alt="ApptekaApp Logo" width="120" height="120" style="border-radius: 24px;">
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="ApptekaApp Logo" width="120" height="120" style="border-radius: 24px;">
 </p>
 
 <h1 align="center">ApptekaApp</h1>
