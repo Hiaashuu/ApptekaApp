@@ -180,8 +180,28 @@ class HomeViewImpl(view: View) : HomeView {
 
     override fun showStoreToolbar() {
         with(toolbar) {
-            title = "AppStore"
-            subtitle = "Hiaashuu"
+            val storeTitle = android.text.SpannableString("AppStore")
+            storeTitle.setSpan(
+                android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                0,
+                storeTitle.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            storeTitle.setSpan(
+                android.text.style.AbsoluteSizeSpan(28, true),
+                0,
+                storeTitle.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            val storeSubtitle = android.text.SpannableString("Hiaashuu")
+            storeSubtitle.setSpan(
+                android.text.style.TypefaceSpan("sans-serif-thin"),
+                0,
+                storeSubtitle.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            title = storeTitle
+            subtitle = storeSubtitle
             menu.clear()
             inflateMenu(R.menu.store_menu)
             invalidateMenu()
