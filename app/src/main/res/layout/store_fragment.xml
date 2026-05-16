@@ -20,60 +20,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
-                <LinearLayout
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="vertical">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/search_bar_layout"
-                        style="@style/Widget.Material3.CardView.Filled"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="12dp"
-                        android:layout_marginBottom="4dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        app:cardBackgroundColor="?attr/category_dropdown_background"
-                        app:cardCornerRadius="24dp"
-                        app:cardElevation="0dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingHorizontal="16dp"
-                            android:paddingVertical="12dp">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_search"
-                                app:tint="?attr/colorOnSurfaceVariant" />
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:text="@string/search_app"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textSize="16sp" />
-
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                    
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recycler"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="8dp"
-                        android:scrollbarStyle="outsideOverlay"
-                        android:scrollbars="vertical" />
-
-                </LinearLayout>
+                    android:clipToPadding="false"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp"
+                    android:scrollbarStyle="outsideOverlay"
+                    android:scrollbars="vertical" />
 
                 <include layout="@layout/progress_overlay" />
 
