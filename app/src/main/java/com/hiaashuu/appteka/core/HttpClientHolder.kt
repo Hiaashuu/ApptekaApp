@@ -1,7 +1,6 @@
 package com.hiaashuu.appteka.core
 
 import android.app.Application
-import com.chuckerteam.chucker.api.ChuckerInterceptor
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import okhttp3.ConnectionPool
@@ -34,7 +33,6 @@ class HttpClientHolderImpl(
         .addInterceptor(UserAgentInterceptor(userAgentProvider.getUserAgent()))
         .addInterceptor(DeviceIdInterceptor(deviceIdProvider.getDeviceId()))
         .addInterceptor(AppInfoInterceptor(appInfoProvider))
-        .addInterceptor(ChuckerInterceptor.Builder(app).build())
         .cookieJar(cookieJar)
         .build()
 
