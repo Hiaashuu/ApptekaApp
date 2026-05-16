@@ -66,7 +66,7 @@ class StoreViewImpl(
     private val recycler: RecyclerView = view.findViewById(R.id.recycler)
     private val error: TextView = view.findViewById(R.id.error_text)
     private val retryButton: View = view.findViewById(R.id.button_retry)
-    private val searchBarLayout: View = view.findViewById(R.id.search_bar_layout)
+    
 
     private val retryRelay = PublishRelay.create<Unit>()
     private val refreshRelay = PublishRelay.create<Unit>()
@@ -86,7 +86,7 @@ class StoreViewImpl(
 
         retryButton.clicks(retryRelay)
 
-        searchBarLayout.clicks(searchBarRelay)
+        
     }
 
     override fun showProgress() {
