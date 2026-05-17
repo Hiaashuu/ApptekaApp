@@ -18,6 +18,8 @@
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
         app:cardCornerRadius="20dp"
         app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:rippleColor="?attr/colorPrimary">
 
         <LinearLayout
@@ -52,7 +54,7 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <!-- Row 1: badge + name + version -->
+                
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -78,25 +80,19 @@
                         android:fontFamily="sans-serif-medium"
                         android:includeFontPadding="false"
                         android:singleLine="true"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:scrollHorizontally="true"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
                         android:textColor="?attr/colorOnSurface"
                         android:textSize="15sp"
                         android:textStyle="bold"
-                        tools:text="AppSend" />
-
-                    <TextView
-                        android:id="@+id/app_version"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:includeFontPadding="false"
-                        android:paddingStart="6dp"
-                        android:singleLine="true"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="12sp"
-                        tools:text="3.4" />
+                        tools:text="AppSend Long Name That Scrolls" />
 
                 </LinearLayout>
 
-                <!-- Row 2: category + icons row -->
+                
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -106,49 +102,61 @@
                     android:paddingBottom="3dp">
 
                     <TextView
-                        android:id="@+id/app_category"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/app_version"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:ellipsize="end"
+                        android:layout_weight="1"
                         android:includeFontPadding="false"
-                        android:maxWidth="110dp"
                         android:singleLine="true"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:scrollHorizontally="true"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="12sp"
-                        tools:text="Messaging" />
+                        tools:text="3.4 (5420)" />
 
-                    <ImageView
-                        android:id="@+id/app_category_icon"
+                    
+                    <LinearLayout
+                        android:id="@+id/app_badge"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="@string/ratings"
-                        android:src="@drawable/ic_user_messages"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <ImageView
-                        android:id="@+id/open_source"
-                        android:layout_width="wrap_content"
-                        android:layout_height="14dp"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="@string/open_source"
-                        android:src="@drawable/ic_open_source"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <ImageView
-                        android:id="@+id/abi_incompatible"
-                        android:layout_width="wrap_content"
-                        android:layout_height="14dp"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="@string/abi_incompatible"
-                        android:src="@drawable/ic_alert_circle"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/round_name_back"
+                        android:backgroundTint="?attr/colorTertiaryContainer"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
                         android:visibility="gone"
-                        app:tint="@color/abi_incompatible_color"
-                        tools:visibility="visible" />
+                        tools:visibility="visible">
+
+                        <ImageView
+                            android:id="@+id/app_badge_icon"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:importantForAccessibility="no"
+                            android:layout_marginEnd="5dp"
+                            android:src="@drawable/ic_pill_ok"
+                            app:tint="?attr/colorOnTertiaryContainer" />
+
+                        <TextView
+                            android:id="@+id/app_badge_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:textColor="?attr/colorOnTertiaryContainer"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="Installed" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
-                <!-- Row 3: size + downloads + rating + status badge -->
+                
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -163,13 +171,56 @@
                         android:singleLine="true"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="12sp"
+                        android:layout_marginEnd="6dp"
                         tools:text="3.1 MB" />
+
+                    <TextView
+                        android:id="@+id/app_category"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="11sp"
+                        android:textColor="?attr/colorOnSecondaryContainer"
+                        android:background="@drawable/round_name_back"
+                        android:backgroundTint="?attr/colorSecondaryContainer"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="1dp"
+                        android:singleLine="true"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:layout_marginEnd="8dp" />
+
+                    <ImageView
+                        android:id="@+id/app_category_icon"
+                        android:layout_width="1dp"
+                        android:layout_height="1dp"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/rating_icon"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="2dp"
+                        android:contentDescription="@string/ratings"
+                        android:src="@drawable/ic_star_smooth"
+                        android:visibility="visible"
+                        app:tint="@color/badge_color" />
+
+                    <TextView
+                        android:id="@+id/app_rating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:includeFontPadding="false"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp"
+                        android:visibility="visible"
+                        tools:text="4.8" />
 
                     <ImageView
                         android:id="@+id/downloads_icon"
-                        android:layout_width="wrap_content"
-                        android:layout_height="13dp"
-                        android:layout_marginStart="8dp"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="2dp"
                         android:contentDescription="@string/downloads"
                         android:src="@drawable/ic_download_smooth"
                         app:tint="?attr/colorOnSurfaceVariant" />
@@ -184,61 +235,32 @@
                         android:textSize="12sp"
                         tools:text="15" />
 
-                    <TextView
-                        android:id="@+id/app_rating"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:includeFontPadding="false"
-                        android:paddingStart="8dp"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="12sp"
-                        android:visibility="visible"
-                        tools:text="4.8" />
-
-                    <ImageView
-                        android:id="@+id/rating_icon"
-                        android:layout_width="wrap_content"
-                        android:layout_height="13dp"
-                        android:layout_marginStart="1dp"
-                        android:contentDescription="@string/ratings"
-                        android:src="@drawable/ic_star_smooth"
-                        android:visibility="visible"
-                        app:tint="@color/badge_color" />
-
                     <View
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
 
-                    <LinearLayout
-                        android:id="@+id/app_badge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="2dp"
+                    <ImageView
+                        android:id="@+id/open_source"
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="6dp"
+                        android:contentDescription="@string/open_source"
+                        android:src="@drawable/ic_open_source"
                         android:visibility="gone"
-                        tools:visibility="visible">
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        tools:visibility="visible" />
 
-                        <ImageView
-                            android:id="@+id/app_badge_icon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="13dp"
-                            android:importantForAccessibility="no"
-                            android:paddingEnd="3dp"
-                            android:src="@drawable/ic_pill_ok"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:id="@+id/app_badge_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:includeFontPadding="false"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="11sp"
-                            tools:text="@string/store_app_installed" />
-
-                    </LinearLayout>
+                    <ImageView
+                        android:id="@+id/abi_incompatible"
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:contentDescription="@string/abi_incompatible"
+                        android:src="@drawable/ic_alert_circle"
+                        android:visibility="gone"
+                        app:tint="@color/abi_incompatible_color"
+                        tools:visibility="visible" />
 
                 </LinearLayout>
 
