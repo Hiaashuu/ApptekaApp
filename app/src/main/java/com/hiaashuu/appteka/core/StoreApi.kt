@@ -221,8 +221,8 @@ interface StoreApi {
     @POST("1/app/favorite/mark")
     fun markFavorite(
         @Query("app_id") appId: String,
-        @Query("is_favorite") isFavorite: Boolean
-    ): Single<StoreResponse<MarkFavoriteResponse>>
+        @Query("is_favorite") isFavorite: Int
+    ): Single<StoreResponse<com.google.gson.JsonElement>>
 
     @GET("1/app/favorite/list")
     fun getFavoriteList(
