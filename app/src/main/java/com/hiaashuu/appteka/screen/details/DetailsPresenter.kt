@@ -145,7 +145,7 @@ class DetailsPresenterImpl(
     private var isFavorite: Boolean = state?.getBoolean(KEY_IS_FAVORITE) == true
     private var translationData: TranslationResponse? =
         state?.getParcelableCompat(KEY_TRANSLATION_DATA, TranslationResponse::class.java)
-    private var translationState: Int = state?.getInt(KEY_TRANSLATION_STATE) ?: TRANSLATION_ORIGINAL
+    private var translationState: Int = state?.getInt(KEY_TRANSLATION_STATE) ?: DetailsConverter.TRANSLATION_ORIGINAL
 
     private val items = ArrayList<Item>()
 
@@ -288,7 +288,7 @@ class DetailsPresenterImpl(
         this.isFavorite = details.isFavorite == true
         details.translation?.let { translation ->
             this.translationData = translation
-            this.translationState = TRANSLATION_TRANSLATED
+            this.translationState = DetailsConverter.TRANSLATION_TRANSLATED
         }
         dispatchPackageStatus()
     }
@@ -310,7 +310,7 @@ class DetailsPresenterImpl(
             .subscribe(
                 {
                     tryInstall()
-                    bindDetails()
+                    bindDetails(forceUpdateAll = false)
                     view?.showContent()
                     if (openReview) {
                         openReview = false
@@ -320,11 +320,10 @@ class DetailsPresenterImpl(
             )
     }
 
-    private fun bindDetails() {
+    private fun bindDetails(forceUpdateAll: Boolean = true) {
         val details = this.details ?: return
 
-        items.clear()
-        items += detailsConverter.convert(
+        val newItems = detailsConverter.convert(
             details,
             downloadState,
             installedVersionCode,
@@ -333,11 +332,26 @@ class DetailsPresenterImpl(
             translationState
         )
 
-        bindItems()
-
-        bindMenu()
-
-        view?.contentUpdated()
+        if (forceUpdateAll || items.size != newItems.size) {
+            items.clear()
+            items.addAll(newItems)
+            adapterPresenter.get().onDataSourceChanged(items)
+            bindMenu()
+            view?.contentUpdated()
+        } else {
+            var hasChanges = false
+            for (i in items.indices) {
+                if (items[i] != newItems[i]) {
+                    items[i] = newItems[i]
+                    view?.contentUpdated(i)
+                    hasChanges = true
+                }
+            }
+            if (hasChanges) {
+                adapterPresenter.get().onDataSourceChanged(items)
+                bindMenu()
+            }
+        }
     }
 
     private fun bindMenu() {
@@ -348,10 +362,6 @@ class DetailsPresenterImpl(
             canUnpublish = isCapabilityAllowed(CapabilityAction.APP_UNPUBLISH),
             canDelete = isCapabilityAllowed(CapabilityAction.APP_DELETE)
         )
-    }
-
-    private fun bindItems() {
-        adapterPresenter.get().onDataSourceChanged(items)
     }
 
     private fun tryInstall(): Boolean {
@@ -470,7 +480,7 @@ class DetailsPresenterImpl(
             authError = { view?.showUnauthorizedError() },
             capabilityDenied = { cap ->
                 view?.showContent()
-                bindDetails()
+                bindDetails(forceUpdateAll = true)
                 view?.showCapabilityDenied(cap)
             },
             other = {
@@ -606,11 +616,11 @@ class DetailsPresenterImpl(
     override fun onTranslateClick() {
         if (translationData != null) {
             translationState = when (translationState) {
-                TRANSLATION_ORIGINAL -> TRANSLATION_TRANSLATED
-                TRANSLATION_TRANSLATED -> TRANSLATION_ORIGINAL
+                DetailsConverter.TRANSLATION_ORIGINAL -> DetailsConverter.TRANSLATION_TRANSLATED
+                DetailsConverter.TRANSLATION_TRANSLATED -> DetailsConverter.TRANSLATION_ORIGINAL
                 else -> translationState
             }
-            bindDetails()
+            bindDetails(forceUpdateAll = true)
             view?.showContent()
             return
         }
@@ -626,21 +636,21 @@ class DetailsPresenterImpl(
     }
 
     private fun onTranslationStarted() {
-        translationState = TRANSLATION_PROGRESS
-        bindDetails()
+        translationState = DetailsConverter.TRANSLATION_PROGRESS
+        bindDetails(forceUpdateAll = true)
         view?.showContent()
     }
 
     private fun onTranslationLoaded(response: TranslationResponse) {
         translationData = response
-        translationState = TRANSLATION_TRANSLATED
-        bindDetails()
+        translationState = DetailsConverter.TRANSLATION_TRANSLATED
+        bindDetails(forceUpdateAll = true)
         view?.showContent()
     }
 
     private fun onTranslationError() {
-        translationState = TRANSLATION_ORIGINAL
-        bindDetails()
+        translationState = DetailsConverter.TRANSLATION_ORIGINAL
+        bindDetails(forceUpdateAll = true)
         view?.showContent()
         view?.showSnackbar(resourceProvider.translationError())
     }
