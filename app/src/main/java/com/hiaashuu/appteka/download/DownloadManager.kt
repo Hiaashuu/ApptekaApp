@@ -95,7 +95,7 @@ class DownloadManagerImpl(
                     relay.accept(percent)
                 },
                 errorCallback = {
-                    relay.accept(ERROR)
+
                 },
             )
             when (result) {
@@ -105,15 +105,17 @@ class DownloadManagerImpl(
                         relay.accept(COMPLETED)
                         fileNames.remove(appId)
                     } else {
+                        apkStorage.deleteTmp(fileName)
                         relay.accept(ERROR)
                     }
                 }
                 DownloadResult.INTERRUPTED -> {
-
+                    apkStorage.deleteTmp(fileName)
                     relay.accept(IDLE)
                 }
                 DownloadResult.ERROR -> {
-
+                    apkStorage.deleteTmp(fileName)
+                    relay.accept(ERROR)
                 }
             }
             downloads.remove(appId)
@@ -137,10 +139,13 @@ class DownloadManagerImpl(
     }
 
     override fun cancel(appId: String) {
-        downloads.remove(appId)?.cancel(true)
-
+        val future = downloads.remove(appId)
+        if (future != null) {
+            future.cancel(true)
+        }
         fileNames.remove(appId)?.let { fileName ->
             apkStorage.deleteTmp(fileName)
+            apkStorage.delete(fileName)
         }
         relays[appId]?.accept(IDLE)
     }
@@ -246,10 +251,12 @@ class DownloadManagerImpl(
             progressCallback(100)
             return DownloadResult.SUCCESS
         } catch (ex: InterruptedIOException) {
-            println("[download] IO interruption - partial file saved for resume\n$ex")
+            println("[download] IO interruption - download cancelled\n$ex")
+            apkStorage.deleteTmp(fileName)
             return DownloadResult.INTERRUPTED
         } catch (ex: InterruptedException) {
-            println("[download] Interrupted - partial file saved for resume\n$ex")
+            println("[download] Interrupted - download cancelled\n$ex")
+            apkStorage.deleteTmp(fileName)
             return DownloadResult.INTERRUPTED
         } catch (ex: Throwable) {
             println("[download] Exception while application downloading\n$ex")
