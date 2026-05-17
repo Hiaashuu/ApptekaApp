@@ -8,6 +8,8 @@ import com.hiaashuu.appteka.categories.Category
 import com.hiaashuu.appteka.categories.CategoryConverter
 import com.hiaashuu.appteka.categories.CategoryItem
 import com.hiaashuu.appteka.dto.AppEntity
+import com.hiaashuu.appteka.download.DownloadManager
+import com.hiaashuu.appteka.download.IDLE
 import com.hiaashuu.appteka.screen.store.adapter.ItemListener
 import com.hiaashuu.appteka.screen.store.adapter.app.AppItem
 import com.hiaashuu.appteka.util.Analytics
@@ -57,6 +59,7 @@ class StorePresenterImpl(
     private val adapterPresenter: Lazy<AdapterPresenter>,
     private val appConverter: AppConverter,
     private val analytics: Analytics,
+    private val downloadManager: DownloadManager,
     private val schedulers: SchedulersFactory,
     state: Bundle?
 ) : StorePresenter {
@@ -65,6 +68,7 @@ class StorePresenterImpl(
     private var router: StorePresenter.StoreRouter? = null
 
     private val subscriptions = CompositeDisposable()
+    private val downloadSubscriptions = CompositeDisposable()
 
     private var items: List<AppItem>? =
         state?.getParcelableArrayListCompat(KEY_APPS, AppItem::class.java)
@@ -110,6 +114,7 @@ class StorePresenterImpl(
 
     override fun detachView() {
         subscriptions.clear()
+        downloadSubscriptions.clear()
         this.view = null
     }
 
@@ -160,7 +165,7 @@ class StorePresenterImpl(
             .retryWhenNonAuthErrors()
             .subscribe(
                 { onLoaded(it) },
-                { onError() }
+                { onLoadMoreError() }
             )
     }
 
@@ -178,21 +183,33 @@ class StorePresenterImpl(
 
     private fun bindItems() {
         val items = this.items
-        when {
-            items.isNullOrEmpty() -> {
-                view?.showPlaceholder()
-            }
+        if (items.isNullOrEmpty()) {
+            view?.showPlaceholder()
+            return
+        }
 
-            else -> {
-                adapterPresenter.get().onDataSourceChanged(items)
-                view?.let {
-                    it.contentUpdated()
-                    if (it.isPullRefreshing()) {
-                        it.stopPullRefreshing()
-                    } else {
-                        it.showContent()
+        downloadSubscriptions.clear()
+        items.forEach { item ->
+            downloadSubscriptions += downloadManager.status(item.appId)
+                .observeOn(schedulers.mainThread())
+                .subscribe({ status ->
+                    if (item.downloadProgress != status) {
+                        item.downloadProgress = status
+                        val position = items.indexOf(item)
+                        if (position >= 0) {
+                            view?.contentUpdated(position)
+                        }
                     }
-                }
+                }, {})
+        }
+
+        adapterPresenter.get().onDataSourceChanged(items)
+        view?.let {
+            it.contentUpdated()
+            if (it.isPullRefreshing()) {
+                it.stopPullRefreshing()
+            } else {
+                it.showContent()
             }
         }
     }
@@ -200,6 +217,16 @@ class StorePresenterImpl(
     private fun onError() {
         this.isError = true
         view?.showError()
+    }
+
+    private fun onLoadMoreError() {
+        items?.last()
+            ?.apply {
+                hasProgress = false
+                hasMore = false
+                hasError = true
+            }
+        bindItems()
     }
 
     override fun onUpdate() {
@@ -217,6 +244,20 @@ class StorePresenterImpl(
 
     override fun onLoadMore(item: Item) {
         val app = items?.find { it.id == item.id } ?: return
+        loadApps(app.appId)
+    }
+
+    override fun onRetryClick(item: Item) {
+        val app = items?.find { it.id == item.id } ?: return
+        if (items?.isNotEmpty() == true) {
+            items?.last()?.let {
+                it.hasProgress = true
+                it.hasError = false
+            }
+            items?.indexOf(app)?.let {
+                view?.contentUpdated(it)
+            }
+        }
         loadApps(app.appId)
     }
 
