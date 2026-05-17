@@ -98,9 +98,9 @@ class DetailsInteractorImpl(
         return api
             .markFavorite(
                 appId = appId,
-                isFavorite = isFavorite,
+                isFavorite = if (isFavorite) 1 else 0,
             )
-            .map { it.result }
+            .map { MarkFavoriteResponse() }
             .subscribeOn(schedulers.io())
     }
 
