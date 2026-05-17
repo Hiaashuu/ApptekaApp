@@ -215,6 +215,21 @@ class SearchPresenterImpl(
         loadMore(offset)
     }
 
+    override fun onRetryClick(item: Item) {
+        val app = items?.find { it.id == item.id } ?: return
+        if (items?.isNotEmpty() == true) {
+            items?.last()?.let {
+                it.hasProgress = true
+                it.hasError = false
+            }
+            items?.indexOf(app)?.let {
+                view?.contentUpdated(it)
+            }
+        }
+        val offset = items?.size ?: return
+        loadMore(offset)
+    }
+
 }
 
 private const val KEY_APPS = "apps"
