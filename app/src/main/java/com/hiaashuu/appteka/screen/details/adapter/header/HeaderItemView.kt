@@ -21,31 +21,19 @@ import com.hiaashuu.appteka.view.UserIconViewImpl
 import com.tomclaw.imageloader.util.fetch
 
 interface HeaderItemView : ItemView {
-
     fun setIndeterminate()
-
     fun setProgress(progress: Int)
-
     fun hideProgress()
-
     fun setAppIcon(url: String?)
-
     fun setAppLabel(label: String?)
-
-    fun setAppPackage(packageName: String?)
-
+    fun setAppVersion(version: String)
+    fun setSize(size: String)
     fun showUploader()
-
     fun hideUploader()
-
     fun setUploaderIcon(userIcon: UserIcon)
-
     fun setUploaderBadge(badge: BadgeMark?)
-
     fun setUploaderName(name: String)
-
     fun setOnUploaderClickListener(listener: (() -> Unit)?)
-
 }
 
 class HeaderItemViewHolder(view: View) : BaseItemViewHolder(view), HeaderItemView {
@@ -54,7 +42,8 @@ class HeaderItemViewHolder(view: View) : BaseItemViewHolder(view), HeaderItemVie
     private val appIcon: ImageView = view.findViewById(R.id.app_icon)
     private val iconBack: View = view.findViewById(R.id.icon_back)
     private val appLabel: TextView = view.findViewById(R.id.app_label)
-    private val appPackage: TextView = view.findViewById(R.id.app_package)
+    private val appVersion: TextView = view.findViewById(R.id.app_version)
+    private val appSize: TextView = view.findViewById(R.id.app_size)
     private val uploaderContainer: View = view.findViewById(R.id.uploader_container)
     private val uploaderIcon: UserIconView = UserIconViewImpl(view.findViewById(R.id.uploader_icon))
     private val uploaderName: TextView = view.findViewById(R.id.uploader_name)
@@ -105,8 +94,12 @@ class HeaderItemViewHolder(view: View) : BaseItemViewHolder(view), HeaderItemVie
         this.appLabel.bind(label)
     }
 
-    override fun setAppPackage(packageName: String?) {
-        this.appPackage.bind(packageName)
+    override fun setAppVersion(version: String) {
+        this.appVersion.bind(version)
+    }
+
+    override fun setSize(size: String) {
+        this.appSize.bind(size)
     }
 
     override fun showUploader() {
