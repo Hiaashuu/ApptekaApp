@@ -39,7 +39,7 @@ class DownloadManagerImpl(
     private val proxyConfigProvider: ProxyConfigProvider,
 ) : DownloadManager {
 
-    private val executor = Executors.newSingleThreadExecutor()
+    private val executor = Executors.newFixedThreadPool(5)
 
     private val relays = HashMap<String, BehaviorRelay<Int>>()
     private val downloads = HashMap<String, Future<*>>()
