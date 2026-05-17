@@ -2,11 +2,8 @@ package com.hiaashuu.appteka.screen.details.adapter.play
 
 import android.content.res.Resources
 import com.hiaashuu.appteka.R
-import com.hiaashuu.appteka.util.FileHelper
 
 interface PlayResourceProvider {
-
-    fun formatFileSize(size: Long): String
 
     fun securityScanningShort(): String
 
@@ -21,10 +18,6 @@ interface PlayResourceProvider {
 }
 
 class PlayResourceProviderImpl(val resources: Resources) : PlayResourceProvider {
-
-    override fun formatFileSize(size: Long): String {
-        return FileHelper.formatBytes(resources, size)
-    }
 
     override fun securityScanningShort(): String {
         return resources.getString(R.string.security_scanning_short)
