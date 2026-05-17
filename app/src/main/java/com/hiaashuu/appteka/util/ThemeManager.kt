@@ -117,6 +117,6 @@ class ThemeManager(private val app: Application) : Application.ActivityLifecycle
 
     companion object {
         private const val KEY_SEED_COLOR = "seed_color"
-        const val DEFAULT_SEED_COLOR = 0xFF32A304.toInt()
+        const val DEFAULT_SEED_COLOR = 0xFF6750A4.toInt()
     }
 }
