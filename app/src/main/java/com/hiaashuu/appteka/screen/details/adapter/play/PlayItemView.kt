@@ -25,8 +25,6 @@ interface PlayItemView : ItemView {
 
     fun hideFavorites()
 
-    fun setSize(size: String)
-
     fun showExclusive()
 
     fun hideExclusive()
@@ -73,7 +71,6 @@ class PlayItemViewHolder(view: View) : BaseItemViewHolder(view), PlayItemView {
     private val downloadsView: TextView = view.findViewById(R.id.downloads_view)
     private val favoritesContainer: View = view.findViewById(R.id.favorites_container)
     private val favoritesView: TextView = view.findViewById(R.id.favorites_view)
-    private val sizeView: TextView = view.findViewById(R.id.size_view)
     private val exclusiveContainer: View = view.findViewById(R.id.exclusive_container)
     private val openSourceContainer: View = view.findViewById(R.id.open_source_container)
     private val officialContainer: View = view.findViewById(R.id.official_container)
@@ -108,10 +105,6 @@ class PlayItemViewHolder(view: View) : BaseItemViewHolder(view), PlayItemView {
 
     override fun hideFavorites() {
         favoritesContainer.hide()
-    }
-
-    override fun setSize(size: String) {
-        sizeView.bind(size)
     }
 
     override fun showExclusive() {
