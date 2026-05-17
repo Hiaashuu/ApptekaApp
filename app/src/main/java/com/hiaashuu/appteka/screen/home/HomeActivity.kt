@@ -220,8 +220,22 @@ class HomeActivity : AppCompatActivity(), HomePresenter.HomeRouter {
         backCallback.isEnabled = enabled
     }
 
+    private var doubleBackToExitPressedOnce = false
+
     override fun leaveScreen() {
-        finish()
+        if (doubleBackToExitPressedOnce) {
+            finish()
+            return
+        }
+
+        this.doubleBackToExitPressedOnce = true
+        com.google.android.material.snackbar.Snackbar.make(
+            findViewById(android.R.id.content),
+            "Press BACK again to exit",
+            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+        ).show()
+
+        handler.postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
     }
 
     override fun exitApp() {
