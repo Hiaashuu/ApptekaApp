@@ -162,6 +162,7 @@ class DownloadNotificationsImpl(
 
                 IDLE -> {
                     notificationManager.cancel(notificationId)
+                    notificationManager.cancel(DOWNLOAD_NOTIFICATION_ID)
                     stop()
                     disposable?.dispose()
                 }
