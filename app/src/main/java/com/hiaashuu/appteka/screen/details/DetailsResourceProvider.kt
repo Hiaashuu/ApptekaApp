@@ -29,6 +29,8 @@ interface DetailsResourceProvider {
 
     fun formatVersion(version: AppVersion): String
 
+    fun formatFileSize(size: Long): String
+
     fun createTopicError(): String
 
     fun unlinkedStatusText(): String
@@ -139,6 +141,10 @@ class DetailsResourceProviderImpl(
 
     override fun formatVersion(version: AppVersion): String {
         return resources.getString(R.string.app_version_format, version.verName, version.verCode)
+    }
+
+    override fun formatFileSize(size: Long): String {
+        return FileHelper.formatBytes(resources, size)
     }
 
     override fun createTopicError(): String {
