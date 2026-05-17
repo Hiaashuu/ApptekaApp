@@ -2,6 +2,7 @@ package com.hiaashuu.appteka.screen.store.adapter.app
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
 import android.view.View.GONE
@@ -17,6 +18,7 @@ import com.hiaashuu.appteka.util.bind
 import com.hiaashuu.appteka.util.hide
 import com.hiaashuu.appteka.util.show
 import com.hiaashuu.appteka.util.svgToDrawable
+import com.hiaashuu.appteka.view.CardProgressView
 import com.tomclaw.imageloader.util.fetch
 
 interface AppItemView : ItemView {
@@ -46,6 +48,8 @@ interface AppItemView : ItemView {
     fun hideError()
 
     fun setStatus(status: String?, success: Boolean)
+
+    fun setDownloadProgress(progress: Int)
 
     fun showOpenSourceBadge()
 
@@ -86,6 +90,7 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     private val categoryTitle: TextView = view.findViewById(R.id.app_category)
     private val error: View = view.findViewById(R.id.error_view)
     private val retryButton: View = view.findViewById(R.id.button_retry)
+    private val downloadProgressIndicator: CardProgressView = view.findViewById(R.id.download_progress_indicator)
 
     private var clickListener: (() -> Unit)? = null
     private var retryListener: (() -> Unit)? = null
@@ -163,25 +168,59 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
         this.statusContainer.visibility = if (status.isNullOrEmpty()) View.GONE else View.VISIBLE
 
         val isUpdate = status == context.getString(R.string.store_app_update)
+        
+        val background = GradientDrawable().apply {
+            cornerRadius = 1000f
+            shape = GradientDrawable.RECTANGLE
+        }
+        val strokeWidth = com.hiaashuu.appteka.util.dpToPx(1, context.resources)
 
         when {
             isUpdate -> {
+                val tintColor = ContextCompat.getColor(context, R.color.accent_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_download_smooth)
-                this.statusIcon.setColorFilter(ContextCompat.getColor(context, android.R.color.white))
-                this.statusText.setTextColor(ContextCompat.getColor(context, android.R.color.white))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_color))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
             }
             success -> {
+                val tintColor = ContextCompat.getColor(context, R.color.online_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_pill_ok)
-                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
-                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorTertiaryContainer))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
             }
             else -> {
+                val tintColor = ContextCompat.getColor(context, R.color.block_error_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_pill_fail)
-                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
-                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorErrorContainer))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
+            }
+        }
+        this.statusContainer.background = background
+        this.statusContainer.backgroundTintList = null
+    }
+
+    override fun setDownloadProgress(progress: Int) {
+        when {
+            progress in 0..100 -> {
+                downloadProgressIndicator.visibility = View.VISIBLE
+                downloadProgressIndicator.isIndeterminate = false
+                downloadProgressIndicator.progress = progress
+            }
+            progress == -10 || progress == -20 -> { // AWAIT or STARTED
+                downloadProgressIndicator.visibility = View.VISIBLE
+                downloadProgressIndicator.isIndeterminate = true
+            }
+            else -> {
+                downloadProgressIndicator.visibility = View.GONE
             }
         }
     }
