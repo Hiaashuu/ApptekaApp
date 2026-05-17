@@ -1,100 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <color name="accent_color">#DA5100</color>
-    <color name="primary_color">#32A304</color>
-    <color name="primary_dark_color">#2A8A03</color>
+    
+    
+    <color name="primary_color">#ADC6FF</color>              
+    <color name="primary_dark_color">#E0F2EB</color>         
+    
+    <color name="accent_color">#FF6B00</color>               
 
-    <color name="badge_color">#f79406</color>
+    <color name="badge_color">#FF8A00</color>
 
-    <color name="unread_color">#ff0010</color>
-    <color name="unread_corner_color">#e6000e</color>
+    <color name="unread_color">#FF2D55</color>
+    <color name="unread_corner_color">#E0224A</color>
 
     <color name="grey">#25000000</color>
     <color name="grey_dark">#747474</color>
 
     
-    <color name="bottom_nav_background_light">#FAFAFA</color>
-    <color name="bottom_nav_background_dark">#151515</color>
+    <color name="bottom_nav_background_light">#F8F9FA</color>
+    <color name="bottom_nav_background_dark">#121212</color>
 
-    <color name="permissions_container_light_background">#DBF0E8</color>
-    <color name="permissions_container_dark_background">#051C13</color>
-
-    
-    <color name="primary_container_light">#E8F5E9</color>
-    <color name="primary_container_dark">#1A3A1A</color>
+    <color name="permissions_container_light_background">#E0F2EB</color>
+    <color name="permissions_container_dark_background">#0A1F18</color>
 
     
-    <color name="secondary_container_light">#FFF3E0</color>
-    <color name="secondary_container_dark">#3E2723</color>
+    <color name="primary_container_light">#E6EDFF</color>
+    <color name="primary_container_dark">#1C2F5E</color>
 
-    <color name="divider_light">#dadada</color>
-    <color name="divider_dark">#424242</color>
+    <color name="secondary_container_light">#FFF0E6</color>
+    <color name="secondary_container_dark">#4A2C1F</color>
 
-    <color name="abuse_color">#d63205</color>
+    <color name="divider_light">#E0E0E0</color>
+    <color name="divider_dark">#3A3A3C</color>
 
-    <color name="dangerous_permission_color">#c40e72</color>
+    <color name="abuse_color">#D93F1E</color>
+
+    <color name="dangerous_permission_color">#C41E6E</color>
 
     <color name="chat_time_color">#666666</color>
-    <color name="compose_background_color_light">#f4ffffff</color>
-    <color name="compose_background_color_dark">#f4000000</color>
+    <color name="compose_background_color_light">#F8FAFC</color>
+    <color name="compose_background_color_dark">#1C1C1E</color>
     <color name="discuss_bubble_color_light">@android:color/white</color>
-    <color name="discuss_bubble_color_dark">#222222</color>
+    <color name="discuss_bubble_color_dark">#2A2A2E</color>
 
-    <color name="approve_color">#689627</color>
-    <color name="decline_color">#d63205</color>
+    <color name="approve_color">#4CAF50</color>
+    <color name="decline_color">#D93F1E</color>
 
-    <color name="color_semitransparent">#baffffff</color>
-    <color name="color_semitransparent_black">#cc000000</color>
+    <color name="color_semitransparent">#BAFFFFFF</color>
+    <color name="color_semitransparent_black">#CC000000</color>
 
-    <color name="error_text_color">#d63205</color>
+    <color name="error_text_color">#D93F1E</color>
 
-    <color name="icons_grey_light">#6a6a6a</color>
-    <color name="icons_grey_dark">#E1E1E1</color>
+    <color name="icons_grey_light">#6A6A6A</color>
+    <color name="icons_grey_dark">#E0E0E0</color>
 
-    <color name="text_primary_color_light">#00000E</color>
-    <color name="text_primary_color_dark">#FFFFF1</color>
+    <color name="text_primary_color_light">#0F0F12</color>
+    <color name="text_primary_color_dark">#F2F2F7</color>
 
-    <color name="sdk_incompatible_tint">#d63205</color>
+    <color name="sdk_incompatible_tint">#D93F1E</color>
+    <color name="block_error_color">#D93F1E</color>
+    <color name="block_error_text_color">#A8321A</color>
+    <color name="block_error_back_color">#33D93F1E</color>
 
-    <color name="block_error_color">#d63205</color>
-    <color name="block_error_text_color">#a42604</color>
-    <color name="block_error_back_color">#33d63205</color>
+    <color name="block_info_color">#00A8E0</color>
+    <color name="block_info_text_color">#0078A0</color>
+    <color name="block_info_back_color">#3300A8E0</color>
 
-    <color name="block_info_color">#05a9d6</color>
-    <color name="block_info_text_color">#0482a4</color>
-    <color name="block_info_back_color">#3305a9d6</color>
+    <color name="block_warning_color">#FFB300</color>
+    <color name="block_warning_text_color">#C48A00</color>
+    <color name="block_warning_back_color">#33FFB300</color>
 
-    <color name="block_warning_color">#ebbc00</color>
-    <color name="block_warning_text_color">#c49d00</color>
-    <color name="block_warning_back_color">#33ffcc00</color>
-
-    <color name="block_success_color">#32A304</color>
-    <color name="block_success_text_color">#2a8a03</color>
-    <color name="block_success_back_color">#3332A304</color>
+    <color name="block_success_color">#4CAF50</color>
+    <color name="block_success_text_color">#2E7D32</color>
+    <color name="block_success_back_color">#334CAF50</color>
 
     <color name="block_neutral_color">#888888</color>
     <color name="block_neutral_text_color">#666666</color>
     <color name="block_neutral_back_color">#22888888</color>
 
-    <color name="block_grey_color_light">#E9DEDEDE</color>
-    <color name="block_grey_color_dark">#2E2E2E</color>
+    <color name="block_grey_color_light">#F0F0F0</color>
+    <color name="block_grey_color_dark">#2C2C2E</color>
 
-    <color name="feed_outline_color_light">#E9DEDEDE</color>
-    <color name="feed_background_color_light">#fafafa</color>
-    <color name="feed_outline_color_dark">#2E2E2E</color>
-    <color name="feed_background_color_dark">#0e0e0f</color>
+    
+    <color name="feed_outline_color">@color/feed_outline_color_light</color>
+    <color name="feed_background_color">@color/feed_background_color_light</color>
+    <color name="feed_outline_color_light">#EDEDED</color>
+    <color name="feed_background_color_light">#FAFAFA</color>
+    <color name="feed_outline_color_dark">#2C2C2E</color>
+    <color name="feed_background_color_dark">#0F0F11</color>
 
-    <color name="online_color">#32A304</color>
+    <color name="online_color">#4CAF50</color>
 
-    <color name="abi_compatible_color">#32A304</color>
-    <color name="abi_incompatible_color">#d63205</color>
+    <color name="abi_compatible_color">#4CAF50</color>
+    <color name="abi_incompatible_color">#D93F1E</color>
 
     
     <color name="surface_color_light">#FFFFFF</color>
-    <color name="surface_color_dark">#0d0d0e</color>
-    <color name="surface_container_light">#F5F5F5</color>
-    <color name="surface_container_dark">#1A1A1B</color>
+    <color name="surface_color_dark">#121212</color>
+    <color name="surface_container_light">#F6F6F8</color>
+    <color name="surface_container_dark">#1E1E20</color>
 
     
     <style name="AppTheme" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar">
@@ -104,7 +108,6 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">?attr/isLightTheme</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o">?attr/isLightTheme</item>
 
-        
         <item name="colorPrimary">@color/primary_color</item>
         <item name="colorOnPrimary">@android:color/white</item>
         <item name="colorPrimaryContainer">@color/primary_container_light</item>
@@ -120,9 +123,9 @@
         <item name="colorTertiaryContainer">@color/accent_color</item>
         <item name="colorOnTertiaryContainer">@android:color/white</item>
 
-        <item name="colorError">#d63205</item>
+        <item name="colorError">#D93F1E</item>
         <item name="colorOnError">@android:color/white</item>
-        <item name="colorErrorContainer">#ffdad6</item>
+        <item name="colorErrorContainer">#FFDAD6</item>
         <item name="colorOnErrorContainer">#410002</item>
 
         <item name="colorSurface">@color/surface_color_light</item>
@@ -138,16 +141,16 @@
         <item name="android:windowBackground">@color/surface_color_light</item>
 
         <item name="text_primary_color">@color/text_primary_color_light</item>
-        <item name="text_secondary_color">#4e4e4e</item>
-        <item name="donate_card_background">#f0f0f0</item>
+        <item name="text_secondary_color">#4E4E4E</item>
+        <item name="donate_card_background">#F0F0F0</item>
 
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
 
         <item name="bottom_bar_background">@color/bottom_nav_background_light</item>
 
-        <item name="toolbar_background">@android:color/white</item>
-        <item name="search_toolbar_background">@android:color/white</item>
+        <item name="toolbar_background">@color/surface_color_light</item>
+        <item name="search_toolbar_background">@color/surface_color_light</item>
 
         <item name="divider_color">@color/divider_light</item>
 
@@ -156,21 +159,19 @@
         <item name="discuss_bubble_color">@color/discuss_bubble_color_light</item>
         <item name="service_background">@drawable/service_background_light</item>
 
-        <item name="rating_empty">#ffcbcbcb</item>
-        <item name="rating_fill">#ff6b6b6b</item>
+        <item name="rating_empty">#FFCBCBCB</item>
+        <item name="rating_fill">#FF6B6B6B</item>
 
-        <item name="five_stars">#ff72b98c</item>
-        <item name="four_stars">#ffa1cd7c</item>
-        <item name="three_stars">#ffffea5f</item>
-        <item name="two_stars">#fff2bd69</item>
-        <item name="one_stars">#fff08f74</item>
+        <item name="five_stars">#FF72B98C</item>
+        <item name="four_stars">#FFA1CD7C</item>
+        <item name="three_stars">#FFFFEA5F</item>
+        <item name="two_stars">#FFF2BD69</item>
+        <item name="one_stars">#FFF08F74</item>
 
         <item name="menu_icons_tint">@color/icons_grey_light</item>
         <item name="semitransparent_color">@color/color_semitransparent</item>
 
-        <item name="permissions_container_background">
-            @color/permissions_container_light_background
-        </item>
+        <item name="permissions_container_background">@color/permissions_container_light_background</item>
 
         <item name="block_grey_color">@color/block_grey_color_light</item>
 
@@ -185,14 +186,12 @@
 
         <item name="category_dropdown_background">?attr/colorSurfaceContainerLow</item>
 
-        
         <item name="preferenceTheme">@style/AppPreferenceThemeOverlay</item>
         <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
         <item name="appBarLayoutStyle">@style/AppBarLayoutStyle</item>
         <item name="bottomNavigationStyle">@style/DefaultBottomNavStyle</item>
     </style>
 
-    
     <style name="AppPreferenceThemeOverlay" parent="@style/PreferenceThemeOverlay">
         <item name="switchPreferenceCompatStyle">@style/AppSwitchPreference</item>
     </style>
@@ -201,9 +200,8 @@
         <item name="widgetLayout">@layout/preference_material_switch</item>
     </style>
 
-    
     <style name="AppThemeSemitransparent" parent="Theme.Material3Expressive.Dark.NoActionBar">
-        <item name="android:statusBarColor">#cc000000</item>
+        <item name="android:statusBarColor">#CC000000</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o">false</item>
@@ -213,7 +211,7 @@
         <item name="colorPrimary">@color/primary_color</item>
         <item name="colorOnPrimary">@android:color/white</item>
         <item name="colorPrimaryContainer">@color/primary_container_dark</item>
-        <item name="colorOnPrimaryContainer">@color/primary_color</item>
+        <item name="colorOnPrimaryContainer">@android:color/white</item>
 
         <item name="colorSecondary">@color/accent_color</item>
         <item name="colorOnSecondary">@android:color/white</item>
@@ -241,7 +239,6 @@
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.Material3.ActionBar" />
 
-    
     <style name="AppBarLayoutStyle" parent="Widget.Material3.AppBarLayout">
         <item name="elevation">0dp</item>
         <item name="android:stateListAnimator">@null</item>
@@ -271,7 +268,6 @@
         <item name="android:progressDrawable">@drawable/rating_detail_element</item>
     </style>
 
-    
     <style name="MaterialButtonPrimary" parent="@style/Widget.Material3Expressive.Button">
         <item name="textAllCaps">false</item>
     </style>
@@ -308,7 +304,6 @@
         <item name="textAllCaps">false</item>
     </style>
 
-    
     <style name="MaterialCardViewExpressive" parent="Widget.Material3.CardView.Elevated">
         <item name="cardCornerRadius">16dp</item>
         <item name="cardElevation">1dp</item>
@@ -319,7 +314,6 @@
         <item name="cardElevation">1dp</item>
     </style>
 
-    
     <style name="MaterialTextInputExpressive" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="boxCornerRadiusTopStart">16dp</item>
         <item name="boxCornerRadiusTopEnd">16dp</item>
@@ -329,7 +323,6 @@
         <item name="hintTextAppearance">@style/TextAppearance.Material3.BodyLarge</item>
     </style>
 
-    
     <style name="MaterialFABExpressive" parent="Widget.Material3.FloatingActionButton.Primary">
         <item name="elevation">3dp</item>
         <item name="pressedTranslationZ">6dp</item>
@@ -353,7 +346,6 @@
         <item name="android:textAllCaps">false</item>
     </style>
 
-    
     <style name="BottomNavActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">?attr/colorPrimaryContainer</item>
     </style>
@@ -370,7 +362,6 @@
         <item name="bottomNavigationStyle">@style/AppBottomNavigationView</item>
     </style>
 
-    
     <style name="ShapeAppearance.Appteka.Circle" parent="">
         <item name="cornerSize">50%</item>
         <item name="cornerFamily">rounded</item>
