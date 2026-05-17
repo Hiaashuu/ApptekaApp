@@ -1,10 +1,14 @@
 package com.hiaashuu.appteka.screen.uploads.adapter.app
 
+import android.content.Context
+import android.content.res.ColorStateList
+import android.util.TypedValue
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
 import com.hiaashuu.appteka.util.adapter.ItemView
 import com.hiaashuu.appteka.R
@@ -12,7 +16,6 @@ import com.hiaashuu.appteka.categories.CategoryItem
 import com.hiaashuu.appteka.util.bind
 import com.hiaashuu.appteka.util.hide
 import com.hiaashuu.appteka.util.show
-import com.hiaashuu.appteka.util.svgToDrawable
 import com.tomclaw.imageloader.util.fetch
 
 interface AppItemView : ItemView {
@@ -79,7 +82,6 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     private val statusIcon: ImageView = view.findViewById(R.id.app_badge_icon)
     private val statusText: TextView = view.findViewById(R.id.app_badge_text)
     private val categoryTitle: TextView = view.findViewById(R.id.app_category)
-    private val categoryIcon: ImageView = view.findViewById(R.id.app_category_icon)
     private val error: View = view.findViewById(R.id.error_view)
     private val retryButton: View = view.findViewById(R.id.button_retry)
 
@@ -89,6 +91,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     init {
         view.setOnClickListener { clickListener?.invoke() }
         retryButton.setOnClickListener { retryListener?.invoke() }
+        title.isSelected = true
+        version.isSelected = true
+        categoryTitle.isSelected = true
     }
 
     override fun setIcon(url: String?) {
@@ -119,11 +124,15 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     }
 
     override fun setTitle(title: String) {
-        this.title.bind(title)
+        this.title.text = title
+        this.title.visibility = if (title.isEmpty()) View.GONE else View.VISIBLE
+        this.title.isSelected = true
     }
 
     override fun setVersion(version: String) {
-        this.version.bind(version)
+        this.version.text = version
+        this.version.visibility = if (version.isEmpty()) View.GONE else View.VISIBLE
+        this.version.isSelected = true
     }
 
     override fun setSize(size: String) {
@@ -147,12 +156,32 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
         badge.hide()
     }
 
-    override fun setStatus(status: String?, isPublished: Boolean) {
-        this.statusText.bind(status)
-        this.statusIcon.setImageResource(
-            if (isPublished) R.drawable.ic_pill_ok else R.drawable.ic_pill_fail
-        )
-        this.statusContainer.visibility = statusText.visibility
+    override fun setStatus(status: String?, success: Boolean) {
+        this.statusText.text = status
+        this.statusContainer.visibility = if (status.isNullOrEmpty()) View.GONE else View.VISIBLE
+
+        val isUpdate = status == context.getString(R.string.store_app_update)
+
+        when {
+            isUpdate -> {
+                this.statusIcon.setImageResource(R.drawable.ic_download_smooth)
+                this.statusIcon.setColorFilter(ContextCompat.getColor(context, android.R.color.white))
+                this.statusText.setTextColor(ContextCompat.getColor(context, android.R.color.white))
+                this.statusContainer.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_color))
+            }
+            success -> {
+                this.statusIcon.setImageResource(R.drawable.ic_pill_ok)
+                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
+                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
+                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorTertiaryContainer))
+            }
+            else -> {
+                this.statusIcon.setImageResource(R.drawable.ic_pill_fail)
+                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
+                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
+                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorErrorContainer))
+            }
+        }
     }
 
     override fun showOpenSourceBadge() {
@@ -173,11 +202,11 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
 
     override fun setCategory(category: CategoryItem?) {
         category?.let {
-            categoryIcon.setImageDrawable(svgToDrawable(it.icon, context.resources))
             categoryTitle.text = it.title
+            categoryTitle.visibility = View.VISIBLE
+            categoryTitle.isSelected = true
         } ?: run {
-            categoryIcon.setImageDrawable(null)
-            categoryTitle.setText(R.string.category_not_set)
+            categoryTitle.visibility = View.GONE
         }
     }
 
@@ -198,4 +227,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
         this.retryListener = null
     }
 
+    private fun getAttributedColor(context: Context, attr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(attr, typedValue, true)
+        return typedValue.data
+    }
 }
