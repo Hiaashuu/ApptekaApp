@@ -45,7 +45,6 @@ class AboutViewImpl(view: View) : AboutView {
     private val sourceCodeButton: View = view.findViewById(R.id.source_code)
     private val telegramGroupButton: View = view.findViewById(R.id.telegram_group)
     private val legalInfoButton: View = view.findViewById(R.id.legal_info)
-    private val contributorsButton: View = view.findViewById(R.id.contributors)
 
     private val navigationRelay = PublishRelay.create<Unit>()
     private val feedbackEmailRelay = PublishRelay.create<Unit>()
@@ -63,7 +62,6 @@ class AboutViewImpl(view: View) : AboutView {
         sourceCodeButton.clicks(sourceCodeRelay)
         telegramGroupButton.clicks(telegramGroupRelay)
         legalInfoButton.clicks(legalInfoRelay)
-        contributorsButton.clicks(contributorsRelay)
     }
 
     override fun setVersion(value: String) {
