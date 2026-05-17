@@ -9,8 +9,10 @@ import kotlinx.parcelize.Parcelize
 data class HeaderItem(
     override val id: Long,
     val icon: String?,
-    val packageName: String,
     val label: String,
     val author: UserMark?,
     val downloadState: Int,
+    val versionName: String = "",
+    val versionCode: Int = 0,
+    val size: String = "",
 ) : Item, Parcelable
