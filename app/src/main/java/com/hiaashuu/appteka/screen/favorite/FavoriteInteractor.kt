@@ -38,7 +38,7 @@ class FavoriteInteractorImpl(
 
     override fun markFavorite(appId: String, isFavorite: Boolean): Completable {
         return api
-            .markFavorite(appId = appId, isFavorite = isFavorite)
+            .markFavorite(appId = appId, isFavorite = if (isFavorite) 1 else 0)
             .ignoreElement()
             .subscribeOn(schedulers.io())
     }
