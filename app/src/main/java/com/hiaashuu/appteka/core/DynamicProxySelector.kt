@@ -11,16 +11,21 @@ class DynamicProxySelector(
 ) : ProxySelector() {
 
     override fun select(uri: URI?): List<Proxy> {
-        val proxy = proxyConfigProvider.getProxyConfig().toProxy()
-        return if (proxy != null) {
+        val config = proxyConfigProvider.getProxyConfig()
+        val proxy = config.toProxy()
+
+        return if (config.enabled && proxy != null) {
             listOf(proxy)
         } else {
-            listOf(Proxy.NO_PROXY)
+            ProxySelector.getDefault()?.select(uri) ?: listOf(Proxy.NO_PROXY)
         }
     }
 
     override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {
-
+        val config = proxyConfigProvider.getProxyConfig()
+        if (!config.enabled) {
+            ProxySelector.getDefault()?.connectFailed(uri, sa, ioe)
+        }
     }
 
 }
