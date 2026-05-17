@@ -52,6 +52,7 @@ class StoreModule(
         adapterPresenter: Lazy<AdapterPresenter>,
         appConverter: AppConverter,
         analytics: Analytics,
+        downloadManager: com.hiaashuu.appteka.download.DownloadManager,
         schedulers: SchedulersFactory
     ): StorePresenter = StorePresenterImpl(
         storeInteractor,
@@ -61,6 +62,7 @@ class StoreModule(
         adapterPresenter,
         appConverter,
         analytics,
+        downloadManager,
         schedulers,
         state
     )
