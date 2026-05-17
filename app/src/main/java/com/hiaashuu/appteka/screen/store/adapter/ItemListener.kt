@@ -8,4 +8,6 @@ interface ItemListener {
 
     fun onLoadMore(item: Item)
 
+    fun onRetryClick(item: Item)
+
 }
