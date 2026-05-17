@@ -1,9 +1,9 @@
 package com.hiaashuu.appteka.screen.details.adapter.description
 
 import com.hiaashuu.appteka.util.adapter.ItemPresenter
-import com.hiaashuu.appteka.screen.details.TRANSLATION_ORIGINAL
-import com.hiaashuu.appteka.screen.details.TRANSLATION_PROGRESS
-import com.hiaashuu.appteka.screen.details.TRANSLATION_TRANSLATED
+import com.hiaashuu.appteka.screen.details.DetailsConverter.Companion.TRANSLATION_ORIGINAL
+import com.hiaashuu.appteka.screen.details.DetailsConverter.Companion.TRANSLATION_PROGRESS
+import com.hiaashuu.appteka.screen.details.DetailsConverter.Companion.TRANSLATION_TRANSLATED
 import com.hiaashuu.appteka.screen.details.adapter.ItemListener
 
 class DescriptionItemPresenter(
@@ -13,7 +13,7 @@ class DescriptionItemPresenter(
 
     override fun bindView(view: DescriptionItemView, item: DescriptionItem, position: Int) {
         view.setText(item.text)
-        view.setAppVersion(resourceProvider.formatFileVersion(item.versionName, item.versionCode))
+        view.setPackageName(item.packageName)
         view.setVersionsCount(item.versionsCount)
         view.setUploadDate(resourceProvider.formatDate(item.uploadDate))
         view.setChecksum(item.checksum)
