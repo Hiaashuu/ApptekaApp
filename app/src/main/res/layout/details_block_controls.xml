@@ -8,7 +8,9 @@
     android:layout_marginBottom="5dp"
     app:cardBackgroundColor="?attr/colorSurfaceContainer"
     app:cardCornerRadius="20dp"
-    app:cardElevation="0dp">
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutlineVariant">
 
     <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"
@@ -23,50 +25,55 @@
             android:id="@+id/cancel_button"
             style="@style/MaterialButtonSecondaryOutline"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:layout_margin="6dp"
             android:layout_weight="1"
+            android:textSize="15sp"
             android:text="@string/cancel" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/remove_button"
             style="@style/MaterialButtonSecondaryOutline"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:layout_margin="6dp"
             android:layout_weight="1"
+            android:textSize="15sp"
             android:text="@string/remove" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/install_button"
             style="@style/MaterialButtonPrimary"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:layout_margin="6dp"
             android:layout_weight="1"
+            android:textSize="15sp"
             android:text="@string/install" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/update_button"
             style="@style/MaterialButtonPrimary"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:layout_margin="6dp"
             android:layout_weight="1"
+            android:textSize="15sp"
             android:text="@string/update" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/launch_button"
             style="@style/MaterialButtonPrimary"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:layout_margin="6dp"
             android:layout_weight="1"
+            android:textSize="15sp"
             android:text="@string/open" />
 
     </androidx.appcompat.widget.LinearLayoutCompat>
