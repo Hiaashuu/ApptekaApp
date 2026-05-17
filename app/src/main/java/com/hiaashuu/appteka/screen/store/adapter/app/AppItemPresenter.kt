@@ -15,6 +15,7 @@ class AppItemPresenter(
             if (hasMore) {
                 hasMore = false
                 hasProgress = true
+                hasError = false
                 listener.onLoadMore(this)
             }
         }
@@ -54,15 +55,20 @@ class AppItemPresenter(
         view.setStatus(statusText, isPublished)
         if (item.isNew) view.showBadge() else view.hideBadge()
         if (item.hasProgress) view.showProgress() else view.hideProgress()
+        if (item.hasError) view.showError() else view.hideError()
         view.setCategory(item.category)
         if (item.openSource) view.showOpenSourceBadge() else view.hideOpenSourceBadge()
         if (!item.isAbiCompatible) view.showAbiIncompatibleBadge() else view.hideAbiIncompatibleBadge()
         view.setClickable(clickable)
+
+        view.setDownloadProgress(item.downloadProgress)
+
         if (clickable) {
             view.setOnClickListener { listener.onItemClick(item) }
         } else {
             view.setOnClickListener(null)
         }
+        view.setOnRetryListener { listener.onRetryClick(item) }
     }
 
 }
