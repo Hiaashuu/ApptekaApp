@@ -35,6 +35,8 @@ interface DetailsView {
 
     fun contentUpdated()
 
+    fun contentUpdated(position: Int)
+
     fun showVersionsDialog(items: List<VersionItem>)
 
     fun showSecurityInfoDialog(status: PlaySecurityStatus, score: Int?)
@@ -180,8 +182,9 @@ class DetailsViewImpl(
         adapter.setHasStableIds(true)
         recycler.adapter = adapter
         recycler.layoutManager = layoutManager
-        recycler.itemAnimator = DefaultItemAnimator()
-        recycler.itemAnimator?.changeDuration = DURATION_MEDIUM
+        recycler.itemAnimator = DefaultItemAnimator().apply {
+            supportsChangeAnimations = false
+        }
     }
 
     override fun showProgress() {
@@ -196,6 +199,10 @@ class DetailsViewImpl(
     @SuppressLint("NotifyDataSetChanged")
     override fun contentUpdated() {
         adapter.notifyDataSetChanged()
+    }
+
+    override fun contentUpdated(position: Int) {
+        adapter.notifyItemChanged(position)
     }
 
     override fun showVersionsDialog(items: List<VersionItem>) {
