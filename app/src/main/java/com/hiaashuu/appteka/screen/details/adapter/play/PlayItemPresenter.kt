@@ -23,8 +23,6 @@ class PlayItemPresenter(
             view.hideFavorites()
         }
 
-        view.setSize(resourceProvider.formatFileSize(item.size))
-
         if (item.exclusive) view.showExclusive() else view.hideExclusive()
 
         if (item.openSource) view.showOpenSource() else view.hideOpenSource()
