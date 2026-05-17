@@ -34,6 +34,7 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
 
     init {
         view.setOnClickListener { clickListener?.invoke() }
+        title.isSelected = true
     }
 
     override fun setIcon(url: String?) {
@@ -48,7 +49,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     }
 
     override fun setTitle(title: String) {
-        this.title.bind(title)
+        this.title.text = title
+        this.title.visibility = if (title.isEmpty()) View.GONE else View.VISIBLE
+        this.title.isSelected = true
     }
 
     override fun setRating(rating: Float?) {
