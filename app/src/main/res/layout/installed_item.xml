@@ -5,7 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?android:attr/selectableItemBackground"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingEnd="12dp">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/icon_back"
@@ -57,28 +59,54 @@
 
             <TextView
                 android:id="@+id/app_name"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_gravity="start|center_vertical"
                 android:fontFamily="sans-serif-medium"
                 android:includeFontPadding="false"
                 android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:scrollHorizontally="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:textColor="?text_primary_color"
                 android:textSize="16sp"
                 tools:text="AppSend" />
 
-            <TextView
-                android:id="@+id/app_version"
+            <LinearLayout
+                android:id="@+id/update_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start|center_vertical"
-                android:includeFontPadding="false"
-                android:paddingStart="4dp"
-                android:paddingLeft="4dp"
-                android:singleLine="true"
-                android:textColor="?text_secondary_color"
-                android:textSize="16sp"
-                tools:text="3.4" />
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/round_name_back"
+                android:backgroundTint="?attr/colorPrimary"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:importantForAccessibility="no"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/ic_download_smooth"
+                    app:tint="@android:color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:text="@string/update" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -91,14 +119,45 @@
             android:paddingBottom="2dp">
 
             <TextView
-                android:id="@+id/app_update_time"
+                android:id="@+id/app_version"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:includeFontPadding="false"
+                android:paddingEnd="4dp"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:scrollHorizontally="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textColor="?text_secondary_color"
+                android:textSize="14sp"
+                tools:text="3.4" />
+
+            <TextView
+                android:id="@+id/app_size"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:paddingEnd="4dp"
+                android:singleLine="true"
+                android:textColor="?text_secondary_color"
+                android:textSize="14sp"
+                tools:text="3.1 MB" />
+
+            <TextView
+                android:id="@+id/app_update_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_gravity="start|center_vertical"
                 android:ellipsize="marquee"
                 android:includeFontPadding="false"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:scrollHorizontally="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:singleLine="true"
                 android:textColor="?text_secondary_color"
                 android:textSize="14sp"
@@ -106,33 +165,6 @@
 
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="2dp">
-
-            <TextView
-                android:id="@+id/app_size"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:includeFontPadding="false"
-                android:singleLine="true"
-                android:textColor="?text_secondary_color"
-                android:textSize="14sp"
-                tools:text="3.1 MB" />
-
-        </LinearLayout>
-
     </LinearLayout>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/update_button"
-        style="@style/MaterialButtonSecondary"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/update" />
 
 </LinearLayout>
