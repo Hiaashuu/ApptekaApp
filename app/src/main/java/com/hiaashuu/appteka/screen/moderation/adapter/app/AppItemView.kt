@@ -1,10 +1,14 @@
 package com.hiaashuu.appteka.screen.moderation.adapter.app
 
+import android.content.Context
+import android.content.res.ColorStateList
+import android.util.TypedValue
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.hiaashuu.appteka.util.adapter.BaseItemViewHolder
 import com.hiaashuu.appteka.util.adapter.ItemView
 import com.hiaashuu.appteka.R
@@ -12,7 +16,6 @@ import com.hiaashuu.appteka.categories.CategoryItem
 import com.hiaashuu.appteka.util.bind
 import com.hiaashuu.appteka.util.hide
 import com.hiaashuu.appteka.util.show
-import com.hiaashuu.appteka.util.svgToDrawable
 import com.tomclaw.imageloader.util.fetch
 
 interface AppItemView : ItemView {
@@ -67,7 +70,6 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     private val abiIncompatible: View = view.findViewById(R.id.abi_incompatible)
     private val progress: View = view.findViewById(R.id.item_progress)
     private val categoryTitle: TextView = view.findViewById(R.id.app_category)
-    private val categoryIcon: ImageView = view.findViewById(R.id.app_category_icon)
     private val error: View = view.findViewById(R.id.error_view)
     private val retryButton: View = view.findViewById(R.id.button_retry)
 
@@ -77,6 +79,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     init {
         view.setOnClickListener { clickListener?.invoke() }
         retryButton.setOnClickListener { retryListener?.invoke() }
+        title.isSelected = true
+        version.isSelected = true
+        categoryTitle.isSelected = true
     }
 
     override fun setIcon(url: String?) {
@@ -107,11 +112,15 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     }
 
     override fun setTitle(title: String) {
-        this.title.bind(title)
+        this.title.text = title
+        this.title.visibility = if (title.isEmpty()) View.GONE else View.VISIBLE
+        this.title.isSelected = true
     }
 
     override fun setVersion(version: String) {
-        this.version.bind(version)
+        this.version.text = version
+        this.version.visibility = if (version.isEmpty()) View.GONE else View.VISIBLE
+        this.version.isSelected = true
     }
 
     override fun setSize(size: String) {
@@ -145,11 +154,11 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
 
     override fun setCategory(category: CategoryItem?) {
         category?.let {
-            categoryIcon.setImageDrawable(svgToDrawable(it.icon, context.resources))
             categoryTitle.text = it.title
+            categoryTitle.visibility = View.VISIBLE
+            categoryTitle.isSelected = true
         } ?: run {
-            categoryIcon.setImageDrawable(null)
-            categoryTitle.setText(R.string.category_not_set)
+            categoryTitle.visibility = View.GONE
         }
     }
 
@@ -166,4 +175,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
         this.retryListener = null
     }
 
+    private fun getAttributedColor(context: Context, attr: Int): Int {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(attr, typedValue, true)
+        return typedValue.data
+    }
 }
