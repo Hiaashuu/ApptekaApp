@@ -21,11 +21,13 @@ class AppConverterImpl(
     private val abiResourceProvider: AbiResourceProvider
 ) : AppConverter {
 
+    private var id: Long = 1
+
     override fun convert(appEntity: AppEntity): AppItem {
         val installedVersionCode = packageObserver.pickInstalledVersionCode(appEntity.packageName)
         val isAbiCompatible = appEntity.abi?.let { abiResourceProvider.checkCompatibility(it) } ?: true
         return AppItem(
-            id = getItemId(appEntity),
+            id = id++,
             appId = appEntity.appId,
             icon = appEntity.icon,
             title = appEntity.title,
@@ -43,10 +45,6 @@ class AppConverterImpl(
             isNew = (TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - appEntity.time) <
                     TimeUnit.DAYS.toSeconds(1)
         )
-    }
-
-    private fun getItemId(entity: AppEntity): Long {
-        return (entity.appId.hashCode() + entity.packageName.hashCode()).toLong()
     }
 
 }
