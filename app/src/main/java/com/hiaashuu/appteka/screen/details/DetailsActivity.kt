@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -172,6 +173,27 @@ class DetailsActivity : AppCompatActivity(), DetailsPresenter.DetailsRouter {
 
         val adapter = SimpleRecyclerAdapter(adapterPresenter, binder)
         val view = DetailsViewImpl(this, window.decorView, preferences, adapter)
+
+        val titleTextView = findViewById<TextView>(R.id.toolbar_title)
+        val subtitleTextView = findViewById<TextView>(R.id.toolbar_subtitle)
+
+        val passedLabel = intent.getStringExtra(EXTRA_LABEL).orEmpty()
+        titleTextView.text = passedLabel
+        titleTextView.isSelected = true
+
+        if (packageName.isNullOrEmpty()) {
+            subtitleTextView.visibility = android.view.View.GONE
+        } else {
+            subtitleTextView.visibility = android.view.View.VISIBLE
+            subtitleTextView.text = packageName
+            subtitleTextView.isSelected = true
+            subtitleTextView.setOnClickListener {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Package Name", packageName)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Package name copied", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         presenter.attachView(view)
 
