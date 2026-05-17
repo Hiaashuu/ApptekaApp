@@ -26,7 +26,9 @@ class HeaderItemPresenter(
         }
         view.setAppIcon(item.icon)
         view.setAppLabel(item.label)
-        view.setAppPackage(item.packageName)
+        view.setAppVersion("${item.versionName} (${item.versionCode})")
+        view.setSize(item.size)
+
         val author = item.author
         val icon = author?.icon
         if (author != null && icon != null) {
@@ -44,5 +46,4 @@ class HeaderItemPresenter(
             view.hideUploader()
         }
     }
-
 }
