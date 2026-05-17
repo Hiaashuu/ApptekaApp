@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -25,9 +27,12 @@ import com.hiaashuu.appteka.util.hide
 import com.hiaashuu.appteka.util.hideWithAlphaAnimation
 import com.hiaashuu.appteka.util.show
 import com.hiaashuu.appteka.util.showWithAlphaAnimation
+import com.tomclaw.imageloader.util.fetch
 import io.reactivex.rxjava3.core.Observable
 
 interface DetailsView {
+
+    fun setToolbarInfo(title: String, subtitle: String, iconUrl: String?)
 
     fun showProgress()
 
@@ -118,6 +123,10 @@ class DetailsViewImpl(
     private val adapter: SimpleRecyclerAdapter
 ) : DetailsView {
 
+    private val toolbarIcon: ImageView? = view.findViewById(R.id.toolbar_icon)
+    private val toolbarTitle: TextView? = view.findViewById(R.id.toolbar_title)
+    private val toolbarSubtitle: TextView? = view.findViewById(R.id.toolbar_subtitle)
+
     private val toolbar: Toolbar = view.findViewById(R.id.toolbar)
     private val swipeRefresh: SwipeRefreshLayout = view.findViewById(R.id.swipe_refresh)
     private val recycler: RecyclerView = view.findViewById(R.id.recycler)
@@ -184,6 +193,28 @@ class DetailsViewImpl(
         recycler.layoutManager = layoutManager
         recycler.itemAnimator = DefaultItemAnimator().apply {
             supportsChangeAnimations = false
+        }
+    }
+
+    override fun setToolbarInfo(title: String, subtitle: String, iconUrl: String?) {
+        toolbarTitle?.text = title
+        toolbarTitle?.isSelected = true
+        if (subtitle.isNotEmpty()) {
+            toolbarSubtitle?.visibility = View.VISIBLE
+            toolbarSubtitle?.text = subtitle
+            toolbarSubtitle?.isSelected = true
+        } else {
+            toolbarSubtitle?.visibility = View.GONE
+        }
+        toolbarIcon?.let {
+            it.fetch(iconUrl.orEmpty()) {
+                centerCrop()
+                placeholder(R.drawable.app_placeholder)
+                onLoading { imageView ->
+                    imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                    imageView.setImageResource(R.drawable.app_placeholder)
+                }
+            }
         }
     }
 
@@ -438,5 +469,3 @@ class DetailsViewImpl(
     }
 
 }
-
-private const val DURATION_MEDIUM = 300L
