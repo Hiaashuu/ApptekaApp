@@ -73,7 +73,7 @@ class AboutActivity : AppCompatActivity(), AboutPresenter.AboutRouter {
     }
 
     override fun openSourceCodeLink() {
-        openUrl(url = "https://github.com/solkin/appteka-android")
+        openUrl(url = "https://github.com/Hiaashuu/ApptekaApp")
         analytics.trackEvent("click-source-code")
     }
 
