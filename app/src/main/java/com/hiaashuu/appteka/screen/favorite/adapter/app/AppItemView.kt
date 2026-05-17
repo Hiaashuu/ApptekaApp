@@ -2,6 +2,7 @@ package com.hiaashuu.appteka.screen.favorite.adapter.app
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
 import android.view.View.GONE
@@ -162,26 +163,43 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
 
         val isUpdate = status == context.getString(R.string.store_app_update)
 
+        val background = GradientDrawable().apply {
+            cornerRadius = 1000f
+            shape = GradientDrawable.RECTANGLE
+        }
+        val strokeWidth = com.hiaashuu.appteka.util.dpToPx(1, context.resources)
+
         when {
             isUpdate -> {
+                val tintColor = ContextCompat.getColor(context, R.color.accent_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_download_smooth)
-                this.statusIcon.setColorFilter(ContextCompat.getColor(context, android.R.color.white))
-                this.statusText.setTextColor(ContextCompat.getColor(context, android.R.color.white))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.primary_color))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
             }
             success -> {
+                val tintColor = ContextCompat.getColor(context, R.color.online_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_pill_ok)
-                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
-                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnTertiaryContainer))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorTertiaryContainer))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
             }
             else -> {
+                val tintColor = ContextCompat.getColor(context, R.color.block_error_color)
+                val backColor = ContextCompat.getColor(context, android.R.color.transparent)
                 this.statusIcon.setImageResource(R.drawable.ic_pill_fail)
-                this.statusIcon.setColorFilter(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
-                this.statusText.setTextColor(getAttributedColor(context, com.google.android.material.R.attr.colorOnErrorContainer))
-                this.statusContainer.backgroundTintList = ColorStateList.valueOf(getAttributedColor(context, com.google.android.material.R.attr.colorErrorContainer))
+                this.statusIcon.setColorFilter(tintColor)
+                this.statusText.setTextColor(tintColor)
+                background.setColor(backColor)
+                background.setStroke(strokeWidth, tintColor)
             }
         }
+        this.statusContainer.background = background
+        this.statusContainer.backgroundTintList = null
     }
 
     override fun showOpenSourceBadge() {
