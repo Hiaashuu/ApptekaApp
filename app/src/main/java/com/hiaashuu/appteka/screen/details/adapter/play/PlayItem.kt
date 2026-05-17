@@ -11,7 +11,6 @@ data class PlayItem(
     val rating: Float?,
     val downloads: Int,
     val favorites: Int,
-    val size: Long,
     val exclusive: Boolean,
     val openSource: Boolean,
     val official: Boolean,
