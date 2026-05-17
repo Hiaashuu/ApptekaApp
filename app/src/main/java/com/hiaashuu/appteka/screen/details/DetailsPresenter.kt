@@ -290,6 +290,11 @@ class DetailsPresenterImpl(
             this.translationData = translation
             this.translationState = DetailsConverter.TRANSLATION_TRANSLATED
         }
+        view?.setToolbarInfo(
+            title = details.info.label.orEmpty(),
+            subtitle = details.info.packageName,
+            iconUrl = details.info.icon
+        )
         dispatchPackageStatus()
     }
 
