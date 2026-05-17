@@ -15,4 +15,5 @@ data class DescriptionItem(
     val checksum: String,
     val sourceUrl: String?,
     val translationState: Int,
+    val packageName: String,
 ) : Item, Parcelable
