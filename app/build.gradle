@@ -19,8 +19,8 @@ android {
         applicationId "com.hiaashuu.appteka"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 1053
-        versionName "1.2.0"
+        versionCode 1054
+        versionName "1.2.1"
     }
 
     signingConfigs {
