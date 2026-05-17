@@ -45,7 +45,6 @@ import java.util.Locale
 import androidx.core.net.toUri
 
 interface DetailsConverter {
-
     fun convert(
         details: Details,
         downloadState: Int,
@@ -55,6 +54,11 @@ interface DetailsConverter {
         translationState: Int
     ): List<Item>
 
+    companion object {
+        const val TRANSLATION_ORIGINAL: Int = 0
+        const val TRANSLATION_PROGRESS: Int = 1
+        const val TRANSLATION_TRANSLATED: Int = 2
+    }
 }
 
 class DetailsConverterImpl(
@@ -62,6 +66,22 @@ class DetailsConverterImpl(
     private val abiResourceProvider: AbiResourceProvider,
     private val locale: Locale
 ) : DetailsConverter {
+
+    private val ID_STATUS = 1L
+    private val ID_HEADER = 2L
+    private val ID_CONTROLS = 3L
+    private val ID_PLAY = 4L
+    private val ID_SECURITY = 5L
+    private val ID_SCREENSHOTS = 6L
+    private val ID_USER_REVIEW = 7L
+    private val ID_USER_RATE = 8L
+    private val ID_WHATS_NEW = 9L
+    private val ID_DESCRIPTION = 10L
+    private val ID_ABI = 11L
+    private val ID_PERMISSIONS = 12L
+    private val ID_DISCUSS = 13L
+    private val ID_SCORES = 14L
+    private val ID_RATING_OFFSET = 1000L
 
     override fun convert(
         details: Details,
@@ -71,12 +91,11 @@ class DetailsConverterImpl(
         translationData: TranslationResponse?,
         translationState: Int
     ): List<Item> {
-        var id: Long = 1
         val items = ArrayList<Item>()
 
         when (details.info.fileStatus) {
             STATUS_UNLINKED -> items += StatusItem(
-                id = id++,
+                id = ID_STATUS,
                 type = StatusType.ERROR,
                 text = resourceProvider.unlinkedStatusText(),
                 actionType = StatusAction.NONE,
@@ -90,7 +109,7 @@ class DetailsConverterImpl(
                     allowOnUnknown = false,
                 )
                 items += StatusItem(
-                    id = id++,
+                    id = ID_STATUS,
                     type = StatusType.INFO,
                     text = resourceProvider.privateStatusText(),
                     actionType = if (canEdit) StatusAction.EDIT_META else StatusAction.NONE,
@@ -106,7 +125,7 @@ class DetailsConverterImpl(
                         allowOnUnknown = false,
                     )
                     items += StatusItem(
-                        id = id++,
+                        id = ID_STATUS,
                         type = StatusType.WARNING,
                         text = resourceProvider.moderationStatusText(),
                         actionType = if (canUnpublish) StatusAction.UNPUBLISH else StatusAction.NONE,
@@ -119,35 +138,18 @@ class DetailsConverterImpl(
         }
 
         items += HeaderItem(
-            id = id++,
+            id = ID_HEADER,
             icon = details.info.icon,
-            packageName = details.info.packageName,
             label = details.info.label.orEmpty(),
             author = details.info.author,
             downloadState = downloadState,
+            versionName = details.info.version,
+            versionCode = details.info.versionCode,
+            size = resourceProvider.formatFileSize(details.info.size)
         )
-        items += PlayItem(
-            id = id++,
-            rating = details.meta?.rating,
-            downloads = details.info.downloads ?: 0,
-            favorites = details.info.favorites ?: 0,
-            size = details.info.size,
-            exclusive = details.meta?.exclusive == true,
-            openSource = details.meta?.sourceUrl?.isNotEmpty() == true,
-            official = details.developer?.isOfficial == true,
-            category = details.meta?.category,
-            osVersion = details.info.androidVersion,
-            minSdk = details.info.sdkVersion,
-            securityStatus = convertPlaySecurityStatus(details.security),
-            securityScore = details.security?.score,
-        )
-
-        convertSecurityItem(id++, details.info.appId, details.security, resourceProvider)?.let {
-            items += it
-        }
 
         items += ControlsItem(
-            id = id++,
+            id = ID_CONTROLS,
             appId = details.info.appId,
             packageName = details.info.packageName,
             versionCode = details.info.versionCode,
@@ -159,9 +161,29 @@ class DetailsConverterImpl(
             installedVersionCode = installedVersionCode,
             downloadState = downloadState,
         )
+
+        items += PlayItem(
+            id = ID_PLAY,
+            rating = details.meta?.rating,
+            downloads = details.info.downloads ?: 0,
+            favorites = details.info.favorites ?: 0,
+            exclusive = details.meta?.exclusive == true,
+            openSource = details.meta?.sourceUrl?.isNotEmpty() == true,
+            official = details.developer?.isOfficial == true,
+            category = details.meta?.category,
+            osVersion = details.info.androidVersion,
+            minSdk = details.info.sdkVersion,
+            securityStatus = convertPlaySecurityStatus(details.security),
+            securityScore = details.security?.score,
+        )
+
+        convertSecurityItem(ID_SECURITY, details.info.appId, details.security, resourceProvider)?.let {
+            items += it
+        }
+
         if (details.meta?.screenshots != null && details.meta.screenshots.isNotEmpty()) {
             items += ScreenshotsItem(
-                id = id++,
+                id = ID_SCREENSHOTS,
                 items = details.meta.screenshots.map {
                     ScreenshotItem(
                         id = it.scrId.hashCode().toLong(),
@@ -175,7 +197,7 @@ class DetailsConverterImpl(
         }
         if (details.userRating != null) {
             items += UserReviewItem(
-                id = id++,
+                id = ID_USER_REVIEW,
                 score = details.userRating.score,
                 text = details.userRating.text,
                 time = details.userRating.time * 1000,
@@ -183,27 +205,27 @@ class DetailsConverterImpl(
             )
         } else if (installedVersionCode != NOT_INSTALLED && details.info.fileStatus == STATUS_NORMAL) {
             items += UserRateItem(
-                id = id++,
+                id = ID_USER_RATE,
                 appId = details.info.appId,
                 rateCapability = details.capabilities?.get(CapabilityAction.APP_RATE),
             )
         }
         if (!details.meta?.whatsNew.isNullOrBlank()) {
             val whatsNewText = when (translationState) {
-                TRANSLATION_TRANSLATED -> translationData?.whatsNew
+                DetailsConverter.TRANSLATION_TRANSLATED -> translationData?.whatsNew
                 else -> details.meta?.whatsNew
             }
             items += WhatsNewItem(
-                id = id++,
+                id = ID_WHATS_NEW,
                 text = whatsNewText.orEmpty().trim(),
             )
         }
         val descriptionText = when (translationState) {
-            TRANSLATION_TRANSLATED -> translationData?.description
+            DetailsConverter.TRANSLATION_TRANSLATED -> translationData?.description
             else -> details.meta?.description
         }
         items += DescriptionItem(
-            id = id++,
+            id = ID_DESCRIPTION,
             text = descriptionText.orEmpty().trim(),
             versionName = details.info.version,
             versionCode = details.info.versionCode,
@@ -212,23 +234,24 @@ class DetailsConverterImpl(
             checksum = details.info.sha1,
             sourceUrl = details.meta?.sourceUrl,
             translationState = translationState,
+            packageName = details.info.packageName
         )
         if (!details.info.abi.isNullOrEmpty()) {
             items += AbiItem(
-                id = id++,
+                id = ID_ABI,
                 abiList = details.info.abi,
                 isCompatible = abiResourceProvider.checkCompatibility(details.info.abi),
             )
         }
         if (!details.info.permissions.isNullOrEmpty()) {
             items += PermissionsItem(
-                id = id++,
+                id = ID_PERMISSIONS,
                 permissions = details.info.permissions,
             )
         }
         if (details.info.fileStatus == STATUS_NORMAL || !details.versions.isNullOrEmpty()) {
             items += DiscussItem(
-                id = id++,
+                id = ID_DISCUSS,
                 msgCount = details.msgCount,
             )
         }
@@ -239,7 +262,7 @@ class DetailsConverterImpl(
             details.meta.rateCount > 0
         ) {
             items += ScoresItem(
-                id = id++,
+                id = ID_SCORES,
                 rateCount = details.meta.rateCount,
                 rating = details.meta.rating,
                 scores = details.meta.scores
@@ -249,7 +272,7 @@ class DetailsConverterImpl(
         if (!details.ratingsList.isNullOrEmpty()) {
             items += details.ratingsList.map { rating ->
                 RatingItem(
-                    id = id++,
+                    id = ID_RATING_OFFSET + rating.rateId,
                     score = rating.score,
                     text = rating.text,
                     time = rating.time * 1000,
@@ -260,12 +283,7 @@ class DetailsConverterImpl(
 
         return items
     }
-
 }
-
-const val TRANSLATION_ORIGINAL: Int = 0
-const val TRANSLATION_PROGRESS: Int = 1
-const val TRANSLATION_TRANSLATED: Int = 2
 
 private fun convertSecurityItem(
     id: Long,
@@ -273,7 +291,6 @@ private fun convertSecurityItem(
     security: Security?,
     resourceProvider: DetailsResourceProvider
 ): SecurityItem? {
-
     return if (security == null) {
         SecurityItem(
             id = id,
