@@ -9,7 +9,9 @@
     android:layout_marginBottom="5dp"
     app:cardBackgroundColor="?attr/colorSurfaceContainer"
     app:cardCornerRadius="20dp"
-    app:cardElevation="0dp">
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutlineVariant">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,12 +21,12 @@
         android:paddingStart="16dp"
         android:paddingTop="4dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="16dp">
+        android:paddingBottom="20dp">
 
-        <!-- Title row + Translate -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
@@ -45,173 +47,212 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAllCaps="false"
+                android:textSize="12sp"
+                android:paddingStart="4dp"
+                android:paddingEnd="0dp"
                 android:text="@string/translate"
+                app:cornerRadius="50dp"
                 app:drawableTint="?attr/colorPrimary" />
 
         </LinearLayout>
 
-        <!-- Description text -->
         <TextView
             android:id="@+id/description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:autoLink="web|email"
-            android:gravity="fill"
-            android:paddingBottom="12dp"
-            android:textColor="?text_primary_color"
-            android:textIsSelectable="true"
-            android:textSize="15sp"
-            tools:text="Application description text here" />
-
-        <!-- Google Play button - highlighted as outlined full-width -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/google_play_button"
-            style="@style/MaterialButtonSecondaryOutline"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:drawableEnd="@drawable/ic_google_play"
-            android:text="@string/find_on_gp"
-            app:drawableTint="?attr/colorPrimary" />
+            android:autoLink="web|email"
+            android:paddingBottom="6dp"
+            android:textColor="?text_primary_color"
+            android:textIsSelectable="true"
+            android:maxLines="10"
+            android:ellipsize="end"
+            android:requiresFadingEdge="vertical"
+            android:fadingEdgeLength="32dp"
+            android:textSize="15sp"
+            tools:text="Application description text here. This app allows you to do amazing things." />
 
-        <!-- Divider -->
+        <TextView
+            android:id="@+id/description_read_more"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/round_name_back"
+            android:backgroundTint="?attr/colorSecondaryContainer"
+            android:textColor="?attr/colorOnSecondaryContainer"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            tools:text="See full description"
+            tools:visibility="visible" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="16dp"
             android:background="?attr/divider_color" />
 
-        <!-- Version row -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/google_play_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/find_on_gp"
+            android:textAllCaps="false"
+            android:textSize="14sp"
+            app:icon="@drawable/ic_google_play"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/versions_button"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:textAllCaps="false"
+            android:textSize="14sp"
+            tools:visibility="visible"
+            tools:text="5 versions" />
+
+        <LinearLayout
+            android:id="@+id/package_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/round_grey_back"
+            android:backgroundTint="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Package"
+                android:fontFamily="sans-serif-black"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+            <TextView
+                android:id="@+id/app_package"
+                android:layout_width="0dp"
+                android:layout_weight="2"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:textColor="?attr/colorOnSurface" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="4dp"
-            android:paddingBottom="8dp">
-
-            <LinearLayout
+            android:background="@drawable/round_grey_back"
+            android:backgroundTint="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+            <TextView
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-black"
-                    android:text="@string/app_version_title"
-                    android:textColor="?attr/text_primary_color"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/app_version"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="?attr/text_secondary_color"
-                    android:textSize="15sp"
-                    tools:text="1.7 (490)" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/versions_button"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/round_grey_ripple"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="6dp"
-                android:visibility="gone"
-                tools:visibility="visible">
-
-                <TextView
-                    android:id="@+id/versions_button_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="24dp"
-                    android:fontFamily="sans-serif-black"
-                    android:gravity="center"
-                    android:minWidth="24dp"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:textColor="@color/text_primary_color_light"
-                    android:textSize="12sp"
-                    tools:text="10 versions" />
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_arrow_forward"
-                    app:tint="@android:color/black" />
-
-            </LinearLayout>
-
+                android:text="@string/uploaded_title"
+                android:fontFamily="sans-serif-black"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+            <TextView
+                android:id="@+id/upload_date"
+                android:layout_width="0dp"
+                android:layout_weight="2"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurface" />
         </LinearLayout>
 
-        <!-- Uploaded -->
-        <TextView
+        <LinearLayout
+            android:id="@+id/checksum_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:text="@string/uploaded_title"
-            android:textColor="?attr/text_primary_color"
-            android:textSize="14sp" />
+            android:background="@drawable/round_grey_back"
+            android:backgroundTint="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+            <TextView
+                android:id="@+id/app_checksum_title"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/checksum_title"
+                android:fontFamily="sans-serif-black"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+            <TextView
+                android:id="@+id/app_checksum"
+                android:layout_width="0dp"
+                android:layout_weight="2"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:textColor="?attr/colorOnSurface" />
+        </LinearLayout>
 
-        <TextView
-            android:id="@+id/upload_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingTop="2dp"
-            android:paddingBottom="8dp"
-            android:textColor="?attr/text_secondary_color"
-            android:textSize="15sp"
-            tools:text="18.01.2017" />
-
-        <!-- Checksum -->
-        <TextView
-            android:id="@+id/app_checksum_title"
+        <LinearLayout
+            android:id="@+id/app_source_url_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:text="@string/checksum_title"
-            android:textColor="?attr/text_primary_color"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/app_checksum"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:paddingTop="2dp"
-            android:paddingBottom="8dp"
-            android:textColor="?attr/text_secondary_color"
-            android:textIsSelectable="true"
-            android:textSize="12sp"
-            android:typeface="monospace"
-            tools:text="d3cdd8d14a376b8309ee1c06a78cb01142427e59" />
-
-        <!-- Source URL -->
-        <TextView
-            android:id="@+id/app_source_url_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:text="@string/source_code_url"
-            android:textColor="?attr/text_primary_color"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/app_source_url"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:autoLink="web"
-            android:paddingTop="2dp"
-            android:paddingBottom="4dp"
-            android:textColor="?attr/text_secondary_color"
-            android:textSize="15sp"
-            tools:text="https://github.com/solkin/appteka-android" />
+            android:background="@drawable/round_grey_back"
+            android:backgroundTint="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+            <ImageView
+                android:id="@+id/app_source_url_title"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_github"
+                android:importantForAccessibility="no"
+                app:tint="?attr/colorOnSurfaceVariant"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/app_source_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Open Github link"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurface" />
+        </LinearLayout>
 
     </LinearLayout>
 
