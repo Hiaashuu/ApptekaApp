@@ -52,6 +52,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     init {
         view.setOnClickListener { clickListener?.invoke() }
         updateButton.setOnClickListener { updateClickListener?.invoke() }
+        title.isSelected = true
+        version.isSelected = true
+        updateTime.isSelected = true
     }
 
     override fun setIcon(url: String?) {
@@ -66,11 +69,15 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     }
 
     override fun setTitle(title: String) {
-        this.title.bind(title)
+        this.title.text = title
+        this.title.visibility = if (title.isEmpty()) View.GONE else View.VISIBLE
+        this.title.isSelected = true
     }
 
     override fun setVersion(version: String) {
-        this.version.bind(version)
+        this.version.text = version
+        this.version.visibility = if (version.isEmpty()) View.GONE else View.VISIBLE
+        this.version.isSelected = true
     }
 
     override fun setSize(size: String) {
@@ -86,7 +93,9 @@ class AppItemViewHolder(view: View) : BaseItemViewHolder(view), AppItemView {
     }
 
     override fun setUpdateTime(time: String) {
-        this.updateTime.bind(time)
+        this.updateTime.text = time
+        this.updateTime.visibility = if (time.isEmpty()) View.GONE else View.VISIBLE
+        this.updateTime.isSelected = true
     }
 
     override fun setUpdatable(value: Boolean) {
