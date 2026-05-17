@@ -176,6 +176,7 @@ class DetailsActivity : AppCompatActivity(), DetailsPresenter.DetailsRouter {
 
         val titleTextView = findViewById<TextView>(R.id.toolbar_title)
         val subtitleTextView = findViewById<TextView>(R.id.toolbar_subtitle)
+        val iconImageView = findViewById<android.widget.ImageView>(R.id.toolbar_icon)
 
         val passedLabel = intent.getStringExtra(EXTRA_LABEL).orEmpty()
         titleTextView.text = passedLabel
