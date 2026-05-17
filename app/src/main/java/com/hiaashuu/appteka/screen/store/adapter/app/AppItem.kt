@@ -24,5 +24,7 @@ class AppItem(
     var isUpdatable: Boolean = false,
     var isNew: Boolean = false,
     var hasMore: Boolean = false,
+    var hasError: Boolean = false,
     var hasProgress: Boolean = false,
+    var downloadProgress: Int = -30,
 ) : Item, Parcelable
